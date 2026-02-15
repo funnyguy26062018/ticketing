@@ -46,7 +46,7 @@ status_IDs = {
 # Session ID: 4YhtZs5Qm0QR83sD78bd7b5f8d495f0625b3e839b408fb8f0ac04d93bjFHSMm99CYDN34wqAnqXhO
 
 
-app = FastAPI()
+#app = FastAPI()
 jobs = {}
 
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWoqsYGyK334k2FXQvYZUdkx6jhZj9MKGkVPadVGjjd83lWMRK92VwQLnGyT8KTGk/exec"
@@ -76,7 +76,7 @@ def scrape_site(job_id: str):
         "items": ["a", "b", "c"]
     }
 
-@app.post("/start")
+#@app.post("/start")
 def start_job(background_tasks: BackgroundTasks):
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "running", "result": None}
