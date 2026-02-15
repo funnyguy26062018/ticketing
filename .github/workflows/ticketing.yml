@@ -1,14 +1,14 @@
 name: Kayako Selenium Scraper
 
 on:
-  workflow_dispatch:  # allows manual trigger
+  workflow_dispatch:  # manual trigger
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -21,18 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install selenium
-          pip install webdriver-manager
-          pip install beautifulsoup4 lxml html5lib
-          pip install fastapi uvicorn
-          sudo apt-get update
-          sudo apt-get install -y unzip libxi6 libgconf-2-4
+          pip install selenium webdriver-manager beautifulsoup4 lxml html5lib
 
-      - name: Run Selenium scraper
-        env:
-          KAYAKO_USER: ${{ secrets.KAYAKO_USER }}
-          KAYAKO_PASS: ${{ secrets.KAYAKO_PASS }}
+      - name: Run scraper
         run: python ticketing.py
 
       - name: Upload output artifact
