@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, BackgroundTasks
+#from fastapi import FastAPI, BackgroundTasks
 import uuid
 import time
 import json
@@ -142,6 +142,15 @@ def login():
     #driver.get(TICKET_VIEW_URL + "72144")
     #time.sleep(5)
     driver.quit()   # 👈 Selenium is now gone forever
+    result = {
+    "status": "ok",
+    "tickets_scraped": 5,
+    "example_field": "test"
+    }
+
+    # Write output.json in the current working directory
+    with open("output.json", "w") as f:
+        json.dump(result, f, indent=2)
     return session
 
 def getDashboardStatistics():
