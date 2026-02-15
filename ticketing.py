@@ -68,6 +68,7 @@ def long_task():
         print("Apps Script response:", r.text)
     except Exception as e:
         print("Background task error:", e)
+
 def scrape_site(job_id: str):
     # Simulate scraping
     time.sleep(40)  # your real scraper here
@@ -103,6 +104,7 @@ def main():
     # Update ticket
     status_code = updateTicket("72144")
     print(status_code)
+    long_task()
 
 def login():
     # ---------- SETUP SELENIUM ----------
