@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install selenium webdriver-manager beautifulsoup4
+          pip install selenium webdriver-manager beautifulsoup4 lxml html5lib
 
       - name: Run Selenium scraper
         env:
