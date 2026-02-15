@@ -21,9 +21,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade selenium
+          python -m pip install --upgrade pip
+          pip install selenium
           pip install webdriver-manager
           pip install beautifulsoup4 lxml html5lib
+          pip install fastapi uvicorn
 
       - name: Run Selenium scraper
         env:
