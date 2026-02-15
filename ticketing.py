@@ -203,7 +203,7 @@ def getParsedHTML(session, url):
 def saveInGoogleSheets(tickets):
     payload = json.dumps(tickets, ensure_ascii=False, indent=2)
     try:
-        r = requests.post(APPS_SCRIPT_URL, json=payload, timeout=20)
+        r = requests.post(APPS_SCRIPT_URL, json=tickets, timeout=20)
         print("STATUS CODE:", r.status_code)
         print("RESPONSE TEXT:", r.text)
         print("Apps Script response:", r.text)
