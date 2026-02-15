@@ -91,7 +91,8 @@ def scrape_site(job_id: str):
 def main():
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
-    session = login()
+    #global
+    #session = login()
     # Scrape ticket overview
     staff_tickets = getDashboardStatistics()
     print(staff_tickets)
@@ -251,3 +252,6 @@ def getParsedHTML(session, url):
     # Initialize BeatifulSoup
     html = BeautifulSoup(webpage.text, "html.parser")
     return html
+
+session = login()
+main()
