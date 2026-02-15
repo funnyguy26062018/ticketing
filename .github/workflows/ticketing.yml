@@ -1,14 +1,14 @@
 name: Kayako Selenium Scraper
 
 on:
-  workflow_dispatch:  # allows you to manually trigger the workflow
+  workflow_dispatch:  # allows manual trigger
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -16,9 +16,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
       - name: Install dependencies
         run: |
-          pip install selenium webdriver-manager beautifulsoup4 lxml html5lib
+          pip install --upgrade selenium
+          pip install webdriver-manager
+          pip install beautifulsoup4 lxml html5lib
 
       - name: Run Selenium scraper
         env:
