@@ -37,6 +37,8 @@ status_IDs = {
     "Aufgabe": "8",
     "Erledigt": "6"
 }
+APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
+
 
 #GZO-546-21688, 71925
 #QEE-225-71535, 71484
@@ -46,66 +48,7 @@ status_IDs = {
 # Session ID: 4YhtZs5Qm0QR83sD78bd7b5f8d495f0625b3e839b408fb8f0ac04d93bjFHSMm99CYDN34wqAnqXhO
 
 
-#app = FastAPI()
-jobs = {}
-
-APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWoqsYGyK334k2FXQvYZUdkx6jhZj9MKGkVPadVGjjd83lWMRK92VwQLnGyT8KTGk/exec"
-
-def long_task():
-    payload = {
-        "somekey": "somevalue",
-        "source": "pythonanywhere"
-    }
-
-    try:
-        r = requests.post(
-            APPS_SCRIPT_URL,
-            json=payload,
-            timeout=20
-        )
-        print("STATUS CODE:", r.status_code)
-        print("RESPONSE TEXT:", r.text)
-        print("Apps Script response:", r.text)
-    except Exception as e:
-        print("Background task error:", e)
-
-def scrape_site(job_id: str):
-    # Simulate scraping
-    time.sleep(40)  # your real scraper here
-    jobs[job_id]["status"] = "done"
-    jobs[job_id]["result"] = {
-        "items": ["a", "b", "c"]
-    }
-
-#@app.post("/start")
-#def start_job(background_tasks: BackgroundTasks):
-    #job_id = str(uuid.uuid4())
-    #jobs[job_id] = {"status": "running", "result": None}
-    #background_tasks.add_task(scrape_site, job_id)
-    #return {"job_id": job_id}
-
-#@app.get("/status")
-#def job_status(job_id: str):
-    #return jobs.get(job_id, {"status": "unknown"})
-
 # ---------- FUNCTION DECLARATIONS ----------
-def main():
-    # ---------- RETRIEVES WEBSITE INFORMATION ----------
-    # Login to website
-    #global
-    #session = login()
-    # Scrape ticket overview
-    staff_tickets = getDashboardStatistics()
-    print(staff_tickets)
-    # Scrape my tickets
-    myTickets = getMyTickets()
-    print("My tickets: " + json.dumps(myTickets, ensure_ascii=False, indent=2))
-    print("number tickets: " + str(len(myTickets)))
-    # Update ticket
-    status_code = updateTicket("72144")
-    print(status_code)
-    long_task()
-
 def login():
     # ---------- SETUP SELENIUM ----------
     chrome_options = Options()
@@ -224,7 +167,7 @@ def getMyTickets():
         tickets.append(ticket)
     return tickets
 
-def updateTicket(ticket_ID_database):
+def updateTicket(ticket_ID_database, status):
     # Navigates to the ticket details page
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
     # Gets the submission URL
@@ -235,7 +178,7 @@ def updateTicket(ticket_ID_database):
     payload = {
         "gendepartmentid": DEPARTMENT_ID,
         "genownerstaffid": STAFF_ID_ME,
-        "genticketstatusid": status_IDs["Bearbeitung"],
+        "genticketstatusid": status,
         # REQUIRED by Kayako
         "isajax": "1",
         "csrfhash": csrfhash,
@@ -257,5 +200,31 @@ def getParsedHTML(session, url):
     html = BeautifulSoup(webpage.text, "html.parser")
     return html
 
+def saveInGoogleSheets(tickets):
+    payload = {
+        "somekey": "somevalue",
+        "source": "pythonanywhere"
+    }
+    try:
+        r = requests.post(APPS_SCRIPT_URL, json=tickets, timeout=20)
+        print("STATUS CODE:", r.status_code)
+        print("RESPONSE TEXT:", r.text)
+        print("Apps Script response:", r.text)
+    except Exception as e:
+        print("Background task error:", e)
+
+
+# ---------- START: RETRIEVES WEBSITE INFORMATION ----------
+# Login to website
 session = login()
-main()
+# Scrape ticket overview
+staff_tickets = getDashboardStatistics()
+print(staff_tickets)
+# Scrape my tickets
+myTickets = getMyTickets()
+print("My tickets: " + json.dumps(myTickets, ensure_ascii=False, indent=2))
+print("number tickets: " + str(len(myTickets)))
+# Update ticket
+status_code = updateTicket("72335", status_IDs["Bearbeitung"])
+print(status_code)
+saveInGoogleSheets(myTickets)
