@@ -77,15 +77,15 @@ def scrape_site(job_id: str):
     }
 
 #@app.post("/start")
-def start_job(background_tasks: BackgroundTasks):
-    job_id = str(uuid.uuid4())
-    jobs[job_id] = {"status": "running", "result": None}
-    background_tasks.add_task(scrape_site, job_id)
-    return {"job_id": job_id}
+#def start_job(background_tasks: BackgroundTasks):
+    #job_id = str(uuid.uuid4())
+    #jobs[job_id] = {"status": "running", "result": None}
+    #background_tasks.add_task(scrape_site, job_id)
+    #return {"job_id": job_id}
 
-@app.get("/status")
-def job_status(job_id: str):
-    return jobs.get(job_id, {"status": "unknown"})
+#@app.get("/status")
+#def job_status(job_id: str):
+    #return jobs.get(job_id, {"status": "unknown"})
 
 # ---------- FUNCTION DECLARATIONS ----------
 def main():
