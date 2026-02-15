@@ -107,7 +107,9 @@ def main():
 def login():
     # ---------- SETUP SELENIUM ----------
     chrome_options = Options()
-    #chrome_options.add_argument("--headless")  # remove this line if you want to see the browser
+    chrome_options.add_argument("--headless=new")   # Run headless (no GUI)
+    chrome_options.add_argument("--no-sandbox")     # Required in CI environments
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Avoid shared memory issues
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
     # Make sure you have chromedriver installed or in PATH
