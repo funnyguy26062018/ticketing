@@ -13,6 +13,7 @@ import time
 import json
 import re
 import requests
+import os
 
 
 # ---------- CONFIG ----------
@@ -32,11 +33,6 @@ staff_IDs = {
     "Thomas Schüßler": "61"
 }
 DEPARTMENT_ID = "3"
-status_IDs = {
-    "Bearbeitung": "2",
-    "Aufgabe": "8",
-    "Erledigt": "6"
-}
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
 
 
@@ -211,17 +207,21 @@ def saveInGoogleSheets(tickets):
         print("Background task error:", e)
 
 
-# ---------- START: RETRIEVES WEBSITE INFORMATION ----------
+# ---------- START: GETS THE PASSED PARAMETERS FROM GAS ----------
+ticketData = json.loads(os.getenv("TICKET_DATA", "all"))
+mode = os.getenv("MODE", "full") # No need so far
+# ---------- RETRIEVES WEBSITE INFORMATION ----------
 # Login to website
 session = login()
 # Scrape ticket overview
 staff_tickets = getDashboardStatistics()
 print(staff_tickets)
+# Update ticket
+status_code = updateTicket(ticketData["databaseID"], ticketData["statusToSet"])
+print(status_code)
 # Scrape my tickets
 myTickets = getMyTickets()
 print("My tickets: " + json.dumps(myTickets, ensure_ascii=False, indent=2))
 print("number tickets: " + str(len(myTickets)))
-# Update ticket
-status_code = updateTicket("72335", status_IDs["Bearbeitung"])
-print(status_code)
+# Saves the scraped info in Google Sheets
 saveInGoogleSheets(myTickets)

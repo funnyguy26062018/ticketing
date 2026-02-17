@@ -2,6 +2,15 @@ name: Kayako Selenium Scraper
 
 on:
   workflow_dispatch:  # manual trigger
+    inputs:
+      ticketData:
+        description: "Ticket data for scraping"
+        required: false
+        default: "all"
+      mode:
+        description: "Run mode"
+        required: false
+        default: "full"
 
 jobs:
   scrape:
@@ -24,6 +33,9 @@ jobs:
           pip install selenium webdriver-manager beautifulsoup4 lxml html5lib
 
       - name: Run scraper
+        env:
+          TICKET_DATA: ${{ github.event.inputs.ticketData }}
+          MODE: ${{ github.event.inputs.mode }}
         run: python ticketing.py
 
       - name: Upload output artifact
