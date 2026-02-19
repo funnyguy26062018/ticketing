@@ -202,7 +202,7 @@ def getTableData(table):
         elif field == "Nachname, Vorname:":
             ticketDetails["firstLastName"] = value
         elif field == "Wohnanlage:":
-            ticketDetails["buidling"] = value
+            ticketDetails["building"] = value
         elif field == "Zimmernr.:":
             ticketDetails["roomNumber"] = value
         elif field == "E-Mail Adresse:":
