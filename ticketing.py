@@ -160,8 +160,64 @@ def getMyTickets():
         ticket["owner"] = ticket_owner
         ticket["subject"] = ticket_subject.strip()
         ticket["name"] = ticket_name
+        ticket = ticket | getTicketDetails(database_ID)
         tickets.append(ticket)
     return tickets
+
+def getTicketDetails(ticket_ID_database="72335"):
+    html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
+    try:
+        tableDamage = html.find("th",string="SCHADEN").find_parent("table")
+        damageDetails = getTableData(tableDamage)
+        tableContactDetails = html.find("th",string="KONTAKTDATEN").find_parent("table")
+        contactDetails = getTableData(tableContactDetails)
+        tableOther = html.find("th",string="RESTLICHES (WICHTIG!)").find_parent("table")
+        otherDetails = getTableData(tableOther)
+        ticketDetails = damageDetails | contactDetails | otherDetails
+    except:
+        ticketDetails = {}
+        message = html.find("div", class_="ticketpostcontentsdetailscontainer")
+        ticketDetails["message"] = message.text
+    return ticketDetails
+    #tables = html.find_all("table")
+
+def getTableData(table):
+    ticketDetails = {}
+    tableRows = table.find_all("tr")
+    for tableRow in tableRows:
+        tableData = tableRow.find_all("td")
+        if len(tableData) == 0: continue
+        field = tableData[0].text
+        value = tableData[1].text
+        if field == "Betrifft mein Zimmer:":
+            ticketDetails["regardingRoom"] = value
+        elif field == "Betrifft:":
+            ticketDetails["type"] = value
+        elif field == "Beschreibung:":
+            ticketDetails["description"] = value
+        elif field == "Mieter-Typ:":
+            ticketDetails["typeTenant"] = value
+        elif field == "Anrede:":
+            ticketDetails["salutation"] = value
+        elif field == "Nachname, Vorname:":
+            ticketDetails["firstLastName"] = value
+        elif field == "Wohnanlage:":
+            ticketDetails["buidling"] = value
+        elif field == "Zimmernr.:":
+            ticketDetails["roomNumber"] = value
+        elif field == "E-Mail Adresse:":
+            ticketDetails["email"] = value
+        elif field == "Telefonnr.:":
+            ticketDetails["phoneNumber"] = value
+        elif field == "Zugang in meiner Abwesenheit:":
+            ticketDetails["accessGranted"] = value
+        elif field == "Weitergabe der E-Mail Adresse:":
+            ticketDetails["emailForwarding"] = value
+        elif field == "Weitergabe der Telefonnummer:":
+            ticketDetails["phoneNumberForwarding"] = value
+        else:
+            ticketDetails["errorMessage"] = "Field not listed"
+    return ticketDetails
 
 def updateTicket(ticket_ID_database, status):
     # Navigates to the ticket details page
