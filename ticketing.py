@@ -273,8 +273,8 @@ session = login()
 staff_tickets = getDashboardStatistics()
 print(staff_tickets)
 # Update ticket
-status_code = updateTicket(ticketData["databaseID"], ticketData["statusToSet"])
-print(status_code)
+#status_code = updateTicket(ticketData["databaseID"], ticketData["statusToSet"])
+#print(status_code)
 # Scrape my tickets
 myTickets = getMyTickets()
 print("My tickets: " + json.dumps(myTickets, ensure_ascii=False, indent=2))
