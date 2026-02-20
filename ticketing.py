@@ -188,31 +188,31 @@ def getTableData(table):
         if len(tableData) == 0: continue
         field = tableData[0].text.strip().rstrip(":")
         value = tableData[1].text.strip()
-        if field == "Betrifft mein Zimmer:":
+        if field == "Betrifft mein Zimmer":
             ticketDetails["regardingRoom"] = value
-        elif field == "Betrifft:":
+        elif field == "Betrifft":
             ticketDetails["type"] = value
-        elif field == "Beschreibung:":
+        elif field == "Beschreibung":
             ticketDetails["description"] = value
-        elif field == "Mieter-Typ:":
+        elif field == "Mieter-Typ":
             ticketDetails["typeTenant"] = value
-        elif field == "Anrede:":
+        elif field == "Anrede":
             ticketDetails["salutation"] = value
-        elif field == "Nachname, Vorname:":
+        elif field == "Nachname, Vorname":
             ticketDetails["firstLastName"] = value
-        elif field == "Wohnanlage:":
+        elif field == "Wohnanlage":
             ticketDetails["building"] = value
-        elif field == "Zimmernr.:":
+        elif field == "Zimmernr.":
             ticketDetails["roomNumber"] = value
-        elif field == "E-Mail Adresse:":
+        elif field == "E-Mail Adresse":
             ticketDetails["email"] = value
-        elif field == "Telefonnr.:":
+        elif field == "Telefonnr.":
             ticketDetails["phoneNumber"] = value
-        elif field == "Zugang in meiner Abwesenheit:":
+        elif field == "Zugang in meiner Abwesenheit":
             ticketDetails["accessGranted"] = value
-        elif field == "Weitergabe der E-Mail Adresse:":
+        elif field == "Weitergabe der E-Mail Adresse":
             ticketDetails["emailForwarding"] = value
-        elif field == "Weitergabe der Telefonnummer:":
+        elif field == "Weitergabe der Telefonnummer":
             ticketDetails["phoneNumberForwarding"] = value
         else:
             ticketDetails.setdefault("unmappedFields", []).append(field)
