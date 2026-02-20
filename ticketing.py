@@ -179,7 +179,6 @@ def getTicketDetails(ticket_ID_database="72335"):
         message = html.find("div", class_="ticketpostcontentsdetailscontainer")
         ticketDetails["message"] = message.text
     return ticketDetails
-    #tables = html.find_all("table")
 
 def getTableData(table):
     ticketDetails = {}
@@ -187,8 +186,8 @@ def getTableData(table):
     for tableRow in tableRows:
         tableData = tableRow.find_all("td")
         if len(tableData) == 0: continue
-        field = tableData[0].text
-        value = tableData[1].text
+        field = tableData[0].text.strip().rstrip(":")
+        value = tableData[1].text.strip()
         if field == "Betrifft mein Zimmer:":
             ticketDetails["regardingRoom"] = value
         elif field == "Betrifft:":
@@ -216,7 +215,7 @@ def getTableData(table):
         elif field == "Weitergabe der Telefonnummer:":
             ticketDetails["phoneNumberForwarding"] = value
         else:
-            ticketDetails["errorMessage"] = "Field not listed"
+            ticketDetails.setdefault("unmappedFields", []).append(field)
     return ticketDetails
 
 def updateTicket(ticket_ID_database, status):
