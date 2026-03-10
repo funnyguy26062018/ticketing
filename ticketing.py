@@ -130,7 +130,7 @@ def getDashboardStatistics():
 
 def getTickets():
     tickets_employees = []
-    for staff_ID in staff_IDs:
+    for staff_ID in staff_IDs.values():
         tickets_employee = getMyTickets(staff_ID)
         tickets_employees.extend(tickets_employee)
     return tickets_employees
@@ -322,8 +322,8 @@ def saveInGoogleSheets(data):
 
 
 # ---------- START: GETS THE PASSED PARAMETERS FROM GAS ----------
-ticketData = json.loads(os.getenv("TICKET_DATA", "all"))
-mode = os.getenv("MODE", "full") # No need so far
+#ticketData = json.loads(os.getenv("TICKET_DATA", "all"))
+#mode = os.getenv("MODE", "full") # No need so far
 # ---------- RETRIEVES WEBSITE INFORMATION ----------
 # Login to website
 session = login()
@@ -333,6 +333,7 @@ dataToSend = {}
 dataToSend["dashboardStatistics"] = getDashboardStatistics()
 print(dataToSend["dashboardStatistics"])
 # Update ticket
+ticketData = []
 updateTickets(ticketData)
 # Scrape my tickets
 dataToSend["myTickets"] = getTickets()
