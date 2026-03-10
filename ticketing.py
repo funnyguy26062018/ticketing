@@ -21,16 +21,23 @@ USERNAME = "schuessler@stwhd"
 PASSWORD = "triumph01"
 LOGIN_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php"
 DASHBOARD_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Base/Home/Index"
-# "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Search/UnresolvedOwner/" + ID
+# "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Search/UnresolvedOwner/" + STAFF ID
 OWNER_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Search/UnresolvedOwner/"
 ONLINE_STAFF = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Base/AJAX/OnlineStaff"
-# "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/View/" + ID
+# "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/View/" + DATABASE ID
 TICKET_VIEW_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/View/"
-# "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/GeneralSubmit/" + ID + "/inbox/-1/-1/-1/0"
+# "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/GeneralSubmit/" + DATABASE  ID + "/inbox/-1/-1/-1/0"
 TICKET_UPDATE_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/GeneralSubmit/"
+# https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNoteSubmit/ + DATABASE ID
+NOTE_SUBMIT_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNoteSubmit/"
+# https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNote/ + DATABASE ID
+NOTE_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNote/"
 STAFF_ID_ME = "93"
 staff_IDs = {
-    "Thomas Schüßler": "61"
+    "me": "93",
+    "Thomas Schüßler": "61",
+    "Murad Kurt": "94",
+    "Michael Beigel": "31"
 }
 DEPARTMENT_ID = "3"
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
@@ -121,8 +128,19 @@ def getDashboardStatistics():
     print(percentage_person_rounded)
     return staff_tickets
 
-def getMyTickets():
-    html = getParsedHTML(session, OWNER_URL + STAFF_ID_ME)
+def getTickets():
+    tickets_employees = []
+    for staff_ID in staff_IDs:
+        tickets_employee = getMyTickets(staff_ID)
+        tickets_employees.extend(tickets_employee)
+    return tickets_employees
+
+def getMyTickets(staff_ID):
+    html = getParsedHTML(session, OWNER_URL + staff_ID)
+    # Checks if the person has tickets
+    messages = html.find_all(class_="gridrowitalic")
+    for message in messages:
+        if "nothing" in message: return []
     elements_header_titles = html.find_all(class_=["gridtabletitlerow", "gridtabletitlerowsel"])
     header_titles_unsorted = ["Date", "Ticket ID", "Status", "Owner", "Subject", "Name"]
     header_titles_sorted = []
@@ -166,18 +184,22 @@ def getMyTickets():
 
 def getTicketDetails(ticket_ID_database="72335"):
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
-    try:
-        tableDamage = html.find("th",string="SCHADEN").find_parent("table")
+    ticketDetails = {}
+    tableDamage = html.find("th",string="SCHADEN").find_parent("table")
+    if tableDamage:
         damageDetails = getTableData(tableDamage)
-        tableContactDetails = html.find("th",string="KONTAKTDATEN").find_parent("table")
+        ticketDetails |= damageDetails
+    tableContactDetails = html.find("th",string="KONTAKTDATEN").find_parent("table")
+    if tableContactDetails:
         contactDetails = getTableData(tableContactDetails)
-        tableOther = html.find("th",string="RESTLICHES (WICHTIG!)").find_parent("table")
+        ticketDetails |= contactDetails
+    tableOther = html.find("th",string="RESTLICHES (WICHTIG!)").find_parent("table")
+    if tableOther:
         otherDetails = getTableData(tableOther)
-        ticketDetails = damageDetails | contactDetails | otherDetails
-    except:
-        ticketDetails = {}
+        ticketDetails |= otherDetails
+    if not ticketDetails:
         message = html.find("div", class_="ticketpostcontentsdetailscontainer")
-        ticketDetails["message"] = message.text
+        if message: ticketDetails["message"] = message.text.strip()
     return ticketDetails
 
 def getTableData(table):
@@ -218,7 +240,44 @@ def getTableData(table):
             ticketDetails.setdefault("unmappedFields", []).append(field)
     return ticketDetails
 
-def updateTicket(ticket_ID_database, status):
+# Updates the ticket statuses
+def updateTickets(tickets):
+    for ticket in tickets:
+        status_code = addTicketNote(ticket)
+        print(ticket["note"] + ":" + status_code)
+        status_code = updateTicket(ticket)
+        print(ticket["databaseID"] + ": " + status_code)
+
+def addTicketNote(ticket):
+    ticket_ID_database = ticket["databaseID"]
+    # Navigates to the ticket details page
+    html = getParsedHTML(session, NOTE_URL + ticket_ID_database)
+    # Gets the submission URL
+    action_url = html.find("form", id="ticketaddnotesform")["action"]
+    # Gets the hidden CSRF token
+    csrfhash = html.find("input", id="csrfhash")["value"]
+    # Constructs the payload to be sent
+    payload = {
+        "ticketnotes": ticket["note"],
+        "notecolor_ticketnotes": "1",
+        "notetype": "ticket",
+        "forstaffid": "0",
+        # REQUIRED by Kayako
+        "_isDialog": "1",
+        "csrfhash": csrfhash,
+    }
+    # Constructs the header
+    headers = {
+        "X-Requested-With": "XMLHttpRequest",
+        "Referer": TICKET_VIEW_URL + ticket_ID_database
+    }
+    # Post request to update ticket
+    response = session.post(action_url, data=payload, headers=headers)
+    return response.status_code
+
+# Updates the ticket status
+def updateTicket(ticket):
+    ticket_ID_database = ticket["databaseID"]
     # Navigates to the ticket details page
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
     # Gets the submission URL
@@ -229,7 +288,7 @@ def updateTicket(ticket_ID_database, status):
     payload = {
         "gendepartmentid": DEPARTMENT_ID,
         "genownerstaffid": STAFF_ID_ME,
-        "genticketstatusid": status,
+        "genticketstatusid": ticket["statusToSet"],
         # REQUIRED by Kayako
         "isajax": "1",
         "csrfhash": csrfhash,
@@ -251,13 +310,13 @@ def getParsedHTML(session, url):
     html = BeautifulSoup(webpage.text, "html.parser")
     return html
 
-def saveInGoogleSheets(tickets):
-    payload = json.dumps(tickets, ensure_ascii=False, indent=2)
+def saveInGoogleSheets(data):
+    #payload = json.dumps(tickets, ensure_ascii=False, indent=2)
     try:
-        r = requests.post(APPS_SCRIPT_URL, json=tickets, timeout=20)
-        print("STATUS CODE:", r.status_code)
-        print("RESPONSE TEXT:", r.text)
-        print("Apps Script response:", r.text)
+        response = requests.post(APPS_SCRIPT_URL, json=data, timeout=20)
+        print("STATUS CODE:", response.status_code)
+        print("RESPONSE TEXT:", response.text)
+        print("Apps Script response:", response.text)
     except Exception as e:
         print("Background task error:", e)
 
@@ -268,15 +327,16 @@ mode = os.getenv("MODE", "full") # No need so far
 # ---------- RETRIEVES WEBSITE INFORMATION ----------
 # Login to website
 session = login()
+# Data to send to Google Sheets
+dataToSend = {}
 # Scrape ticket overview
-staff_tickets = getDashboardStatistics()
-print(staff_tickets)
+dataToSend["dashboardStatistics"] = getDashboardStatistics()
+print(dataToSend["dashboardStatistics"])
 # Update ticket
-#status_code = updateTicket(ticketData["databaseID"], ticketData["statusToSet"])
-#print(status_code)
+updateTickets(ticketData)
 # Scrape my tickets
-myTickets = getMyTickets()
-print("My tickets: " + json.dumps(myTickets, ensure_ascii=False, indent=2))
-print("number tickets: " + str(len(myTickets)))
+dataToSend["myTickets"] = getTickets()
+print("My tickets: " + json.dumps(dataToSend["myTickets"], ensure_ascii=False, indent=2))
+print("number tickets: " + str(len(dataToSend["myTickets"])))
 # Saves the scraped info in Google Sheets
-saveInGoogleSheets(myTickets)
+saveInGoogleSheets(dataToSend)
