@@ -182,9 +182,11 @@ def getMyTickets(staff_ID):
         tickets.append(ticket)
     return tickets
 
-def getTicketDetails(ticket_ID_database="72335"):
+def getTicketDetails(ticket_ID_database):
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
     ticketDetails = {}
+    containerNotes = html.find(id="ticketnotescontainerdiv").find_all("blockquote")
+    ticketDetails["note"] = containerNotes[-1].text.strip()
     tableDamage = html.find("th",string="SCHADEN").find_parent("table")
     if tableDamage:
         damageDetails = getTableData(tableDamage)
