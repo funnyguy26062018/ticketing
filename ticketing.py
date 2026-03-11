@@ -246,9 +246,9 @@ def getTableData(table):
 def updateTickets(tickets):
     for ticket in tickets:
         status_code = addTicketNote(ticket)
-        print(ticket["note"] + ":" + status_code)
+        print(ticket["note"] + ":" + str(status_code))
         status_code = updateTicket(ticket)
-        print(ticket["databaseID"] + ": " + status_code)
+        print(ticket["databaseID"] + ": " + str(status_code))
 
 def addTicketNote(ticket):
     ticket_ID_database = ticket["databaseID"]
