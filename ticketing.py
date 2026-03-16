@@ -114,62 +114,59 @@ def getDashboardStatistics():
         element_amount = element.find(class_="dashboardprogresscount")
         name = element_name.text.strip() or ""
         amount = int(element_amount.text.strip()) or 0
-        if "STWHD.FM" in name: amount_total = amount
-        if "Sebastian" in name and "Linn" in name: amount_person = amount
+        #if "STWHD.FM" in name: amount_total = amount
+        #if "Sebastian" in name and "Linn" in name: amount_person = amount
         staff_tickets[name] = amount
-    if amount_total != 0:
-        percentage_person = amount_person / amount_total * 100
-        percentage_person_rounded = round(percentage_person, 0)
-    else:
-        percentage_person_rounded = "Division by 0"
-    print(amount_total)
-    print(amount_person)
-    print(percentage_person)
-    print(percentage_person_rounded)
+    #if amount_total != 0:
+        #percentage_person = amount_person / amount_total * 100
+        #percentage_person_rounded = round(percentage_person, 0)
+    #else:
+        #percentage_person_rounded = "Division by 0"
+    #print(amount_total)
+    #print(amount_person)
+    #print(percentage_person)
+    #print(percentage_person_rounded)
     return staff_tickets
 
-def getTickets():
+def getTickets(knownDatabaseIDs):
     tickets_employees = []
     for staff_ID in staff_IDs.values():
-        tickets_employee = getMyTickets(staff_ID)
+        tickets_employee = getMyTickets(staff_ID,knownDatabaseIDs)
         tickets_employees.extend(tickets_employee)
     return tickets_employees
 
-def getMyTickets(staff_ID):
+def getMyTickets(staff_ID,knownDatabaseIDs):
     html = getParsedHTML(session, OWNER_URL + staff_ID)
     # Checks if the person has tickets
     messages = html.find_all(class_="gridrowitalic")
     for message in messages:
-        if "nothing" in message: return []
+        if "nothing" in message.text: return []
     elements_header_titles = html.find_all(class_=["gridtabletitlerow", "gridtabletitlerowsel"])
-    header_titles_unsorted = ["Date", "Ticket ID", "Status", "Owner", "Subject", "Name"]
-    header_titles_sorted = []
-    for element_header_title in elements_header_titles:
+    header_titles = {}
+    for k, element_header_title in enumerate(elements_header_titles):
         header_title = element_header_title.text.strip()
-        if header_title in header_titles_unsorted:
-            header_titles_sorted.append(header_title)
-        else:
-            header_titles_sorted.append("")
+        if header_title: header_titles[header_title] = k
     ticket_entries = html.find_all(class_=["gridrow1", "gridrow2"])
     tickets = []
     for ticket_entry in ticket_entries:
         ticket = {}
         ticket_columns = ticket_entry.find_all("td")
-        index_date = header_titles_sorted.index(header_titles_unsorted[0])
+        index_date = header_titles["Date"]
         ticket_date = ticket_columns[index_date].text
-        index_ticket_ID = header_titles_sorted.index(header_titles_unsorted[1])
+        index_ticket_ID = header_titles["Ticket ID"]
         element_IDs = ticket_columns[index_ticket_ID]
         url = element_IDs.find("a")["href"]
         match_ID = re.search("view/(\\d+)", url, re.IGNORECASE)
         database_ID = match_ID.group(1) if match_ID else ""
+        if database_ID in knownDatabaseIDs: continue
         ticket_ID = element_IDs.text
-        index_status = header_titles_sorted.index(header_titles_unsorted[2])
+        index_status = header_titles["Status"]
         ticket_status = ticket_columns[index_status].text
-        index_owner = header_titles_sorted.index(header_titles_unsorted[3])
+        index_owner = header_titles["Owner"]
         ticket_owner = ticket_columns[index_owner].text
-        index_subject = header_titles_sorted.index(header_titles_unsorted[4])
+        index_subject = header_titles["Subject"]
         ticket_subject = ticket_columns[index_subject].text
-        index_name = header_titles_sorted.index(header_titles_unsorted[5])
+        index_name = header_titles["Name"]
         ticket_name = ticket_columns[index_name].text
         ticket["date"] = ticket_date
         ticket["database_ID"] = database_ID
@@ -178,7 +175,7 @@ def getMyTickets(staff_ID):
         ticket["owner"] = ticket_owner
         ticket["subject"] = ticket_subject.strip()
         ticket["name"] = ticket_name
-        ticket = ticket | getTicketDetails(database_ID)
+        ticket.update(getTicketDetails(database_ID))
         tickets.append(ticket)
     return tickets
 
@@ -186,7 +183,7 @@ def getTicketDetails(ticket_ID_database):
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
     ticketDetails = {}
     containerNotes = html.find(id="ticketnotescontainerdiv").find_all("blockquote")
-    ticketDetails["note"] = containerNotes[-1].text.strip()
+    ticketDetails["note"] = containerNotes[-1].text.strip() if len(containerNotes) > 0 else ""
     tableDamage = html.find("th",string="SCHADEN").find_parent("table")
     if tableDamage:
         damageDetails = getTableData(tableDamage)
@@ -308,8 +305,8 @@ def getParsedHTML(session, url):
     # Navigates to the ticket details page
     webpage = session.get(url, timeout=15)
     webpage.raise_for_status()
-    # Initialize BeatifulSoup
-    html = BeautifulSoup(webpage.text, "html.parser")
+    # Initialize BeatifulSoup - original: html.parser
+    html = BeautifulSoup(webpage.text, "lxml")
     return html
 
 def saveInGoogleSheets(data):
@@ -324,22 +321,24 @@ def saveInGoogleSheets(data):
 
 
 # ---------- START: GETS THE PASSED PARAMETERS FROM GAS ----------
-ticketData = json.loads(os.getenv("TICKET_DATA", "all"))
-mode = os.getenv("MODE", "full") # No need so far
-# ---------- RETRIEVES WEBSITE INFORMATION ----------
-# Login to website
-session = login()
-# Data to send to Google Sheets
-dataToSend = {}
-# Scrape ticket overview
-dataToSend["dashboardStatistics"] = getDashboardStatistics()
-print(dataToSend["dashboardStatistics"])
-# Update ticket
-#ticketData = []
-updateTickets(ticketData)
-# Scrape my tickets
-dataToSend["myTickets"] = getTickets()
-print("My tickets: " + json.dumps(dataToSend["myTickets"], ensure_ascii=False, indent=2))
-print("number tickets: " + str(len(dataToSend["myTickets"])))
-# Saves the scraped info in Google Sheets
-saveInGoogleSheets(dataToSend)
+if __name__ == "__main__":
+    dataReceived = json.loads(os.getenv("TICKET_DATA", "all"))
+    mode = os.getenv("MODE", "full") # No need so far
+    # ---------- RETRIEVES WEBSITE INFORMATION ----------
+    # Login to website
+    session = login()
+    # Data to send to Google Sheets
+    dataToSend = {}
+    # Scrape ticket overview
+    dataToSend["dashboardStatistics"] = getDashboardStatistics()
+    print(dataToSend["dashboardStatistics"])
+    # Update ticket
+    updateTickets(dataReceived["ticketsCompleted"])
+    # Gets the already registered database IDs (tickets)
+    knownDatabaseIDs = set(dataReceived["databaseIDs"])
+    # Scrape my tickets
+    dataToSend["myTickets"] = getTickets(knownDatabaseIDs)
+    print("My tickets: " + json.dumps(dataToSend["myTickets"], ensure_ascii=False, indent=2))
+    print("number tickets: " + str(len(dataToSend["myTickets"])))
+    # Saves the scraped info in Google Sheets
+    saveInGoogleSheets(dataToSend)
