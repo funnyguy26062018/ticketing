@@ -32,6 +32,8 @@ TICKET_UPDATE_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets
 NOTE_SUBMIT_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNoteSubmit/"
 # https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNote/ + DATABASE ID
 NOTE_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Ticket/AddNote/"
+# https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Manage/Index/31/120684/120684/
+# https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Manage/Index/65/120740/
 STAFF_ID_ME = "93"
 staff_IDs = {
     "me": "93",
@@ -93,15 +95,15 @@ def login():
     #driver.get(TICKET_VIEW_URL + "72144")
     #time.sleep(5)
     driver.quit()   # 👈 Selenium is now gone forever
-    result = {
-    "status": "ok",
-    "tickets_scraped": 5,
-    "example_field": "test"
-    }
+    #result = {
+    #"status": "ok",
+    #"tickets_scraped": 5,
+    #"example_field": "test"
+    #}
 
     # Write output.json in the current working directory
-    with open("output.json", "w") as f:
-        json.dump(result, f, indent=2)
+    #with open("output.json", "w") as f:
+        #json.dump(result, f, indent=2)
     return session
 
 def getDashboardStatistics():
@@ -131,52 +133,59 @@ def getDashboardStatistics():
 def getTickets(knownDatabaseIDs):
     tickets_employees = []
     for staff_ID in staff_IDs.values():
+        #time.sleep(15)  # pause between each staff member
         tickets_employee = getMyTickets(staff_ID,knownDatabaseIDs)
         tickets_employees.extend(tickets_employee)
+        # Restricts the scraing to avoid getting flagged 
+        if(len(tickets_employees) >= 10): break
     return tickets_employees
 
 def getMyTickets(staff_ID,knownDatabaseIDs):
-    html = getParsedHTML(session, OWNER_URL + staff_ID)
-    # Checks if the person has tickets
-    messages = html.find_all(class_="gridrowitalic")
-    for message in messages:
-        if "nothing" in message.text: return []
-    elements_header_titles = html.find_all(class_=["gridtabletitlerow", "gridtabletitlerowsel"])
-    header_titles = {}
-    for k, element_header_title in enumerate(elements_header_titles):
-        header_title = element_header_title.text.strip()
-        if header_title: header_titles[header_title] = k
-    ticket_entries = html.find_all(class_=["gridrow1", "gridrow2"])
     tickets = []
-    for ticket_entry in ticket_entries:
-        ticket = {}
-        ticket_columns = ticket_entry.find_all("td")
-        index_date = header_titles["Date"]
-        ticket_date = ticket_columns[index_date].text
-        index_ticket_ID = header_titles["Ticket ID"]
-        element_IDs = ticket_columns[index_ticket_ID]
-        url = element_IDs.find("a")["href"]
-        match_ID = re.search("view/(\\d+)", url, re.IGNORECASE)
-        database_ID = match_ID.group(1) if match_ID else ""
-        if database_ID in knownDatabaseIDs: continue
-        ticket_ID = element_IDs.text
-        index_status = header_titles["Status"]
-        ticket_status = ticket_columns[index_status].text
-        index_owner = header_titles["Owner"]
-        ticket_owner = ticket_columns[index_owner].text
-        index_subject = header_titles["Subject"]
-        ticket_subject = ticket_columns[index_subject].text
-        index_name = header_titles["Name"]
-        ticket_name = ticket_columns[index_name].text
-        ticket["date"] = ticket_date
-        ticket["database_ID"] = database_ID
-        ticket["ticket-ID"] = ticket_ID
-        ticket["status"] = ticket_status.strip()
-        ticket["owner"] = ticket_owner
-        ticket["subject"] = ticket_subject.strip()
-        ticket["name"] = ticket_name
-        ticket.update(getTicketDetails(database_ID))
-        tickets.append(ticket)
+    # Loops over the ticket pages (from 0 to the number excluded)
+    for page in range(10):
+        #time.sleep(3)
+        html = getParsedHTML(session, OWNER_URL + staff_ID, page * 25)
+        # Checks if the person has tickets
+        messages = html.find_all(class_="gridrowitalic")
+        for message in messages:
+            if "nothing" in message.text: return tickets
+        elements_header_titles = html.find_all(class_=["gridtabletitlerow", "gridtabletitlerowsel"])
+        header_titles = {}
+        for k, element_header_title in enumerate(elements_header_titles):
+            header_title = element_header_title.text.strip()
+            if header_title: header_titles[header_title] = k
+        ticket_entries = html.find_all(class_=["gridrow1", "gridrow2"])
+        for ticket_entry in ticket_entries:
+            ticket = {}
+            ticket_columns = ticket_entry.find_all("td")
+            index_date = header_titles["Date"]
+            ticket_date = ticket_columns[index_date].text
+            index_ticket_ID = header_titles["Ticket ID"]
+            element_IDs = ticket_columns[index_ticket_ID]
+            url = element_IDs.find("a")["href"]
+            match_ID = re.search("view/(\\d+)", url, re.IGNORECASE)
+            database_ID = match_ID.group(1) if match_ID else ""
+            if database_ID in knownDatabaseIDs: continue
+            ticket_ID = element_IDs.text
+            index_status = header_titles["Status"]
+            ticket_status = ticket_columns[index_status].text
+            index_owner = header_titles["Owner"]
+            ticket_owner = ticket_columns[index_owner].text
+            index_subject = header_titles["Subject"]
+            ticket_subject = ticket_columns[index_subject].text
+            index_name = header_titles["Name"]
+            ticket_name = ticket_columns[index_name].text
+            ticket["date"] = ticket_date
+            ticket["database_ID"] = database_ID
+            ticket["ticket-ID"] = ticket_ID
+            ticket["status"] = ticket_status.strip()
+            ticket["owner"] = ticket_owner
+            ticket["subject"] = ticket_subject.strip()
+            ticket["name"] = ticket_name
+            #time.sleep(2)  # Time in s
+            ticket.update(getTicketDetails(database_ID))
+            tickets.append(ticket)
     return tickets
 
 def getTicketDetails(ticket_ID_database):
@@ -301,21 +310,31 @@ def updateTicket(ticket):
     response = session.post(action_url, data=payload, headers=headers)
     return response.status_code
 
-def getParsedHTML(session, url):
-    # Navigates to the ticket details page
-    webpage = session.get(url, timeout=15)
+def getParsedHTML(session, url, offset=0):
+    if offset > 0:
+        headers = {
+            "X-Requested-With": "XMLHttpRequest",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Referer": url,
+        }
+        payload = {
+            "_offset": offset
+        }
+        webpage = session.post(url, data=payload, headers=headers, timeout=15)
+    else:
+        # Navigates to the ticket details page
+        webpage = session.get(url, timeout=15)
     webpage.raise_for_status()
     # Initialize BeatifulSoup - original: html.parser
     html = BeautifulSoup(webpage.text, "lxml")
     return html
 
 def saveInGoogleSheets(data):
-    #payload = json.dumps(tickets, ensure_ascii=False, indent=2)
     try:
         response = requests.post(APPS_SCRIPT_URL, json=data, timeout=20)
         print("STATUS CODE:", response.status_code)
         print("RESPONSE TEXT:", response.text)
-        print("Apps Script response:", response.text)
+        #print("Apps Script response:", response.text)
     except Exception as e:
         print("Background task error:", e)
 
@@ -327,6 +346,7 @@ if __name__ == "__main__":
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login()
+    #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Data to send to Google Sheets
     dataToSend = {}
     # Scrape ticket overview
@@ -340,5 +360,7 @@ if __name__ == "__main__":
     dataToSend["myTickets"] = getTickets(knownDatabaseIDs)
     print("My tickets: " + json.dumps(dataToSend["myTickets"], ensure_ascii=False, indent=2))
     print("number tickets: " + str(len(dataToSend["myTickets"])))
+    with open("output2.json", "w") as f:
+        json.dump(dataToSend, f, indent=2)
     # Saves the scraped info in Google Sheets
     saveInGoogleSheets(dataToSend)
