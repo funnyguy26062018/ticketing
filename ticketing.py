@@ -133,20 +133,16 @@ def getDashboardStatistics():
 def getTickets(knownDatabaseIDs):
     tickets_employees = []
     for staff_ID in staff_IDs.values():
-        #time.sleep(15)  # pause between each staff member
         tickets_employee = getMyTickets(staff_ID,knownDatabaseIDs)
         tickets_employees.extend(tickets_employee)
-        # Restricts the scraing to avoid getting flagged 
-        if(len(tickets_employees) >= 10): break
     return tickets_employees
 
 def getMyTickets(staff_ID,knownDatabaseIDs):
     tickets = []
     # Loops over the ticket pages (from 0 to the number excluded)
     for page in range(10):
-        #time.sleep(3)
         html = getParsedHTML(session, OWNER_URL + staff_ID, page * 25)
-        # Checks if the person has tickets
+        # Checks if the page has tickets
         messages = html.find_all(class_="gridrowitalic")
         for message in messages:
             if "nothing" in message.text: return tickets
@@ -183,7 +179,6 @@ def getMyTickets(staff_ID,knownDatabaseIDs):
             ticket["owner"] = ticket_owner
             ticket["subject"] = ticket_subject.strip()
             ticket["name"] = ticket_name
-            #time.sleep(2)  # Time in s
             ticket.update(getTicketDetails(database_ID))
             tickets.append(ticket)
     return tickets
