@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 #from fastapi import FastAPI, BackgroundTasks
-import uuid
+#import uuid
 import time
 import json
 import re
@@ -92,18 +92,7 @@ def login():
         "User-Agent": "Mozilla/5.0",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     })
-    #driver.get(TICKET_VIEW_URL + "72144")
-    #time.sleep(5)
     driver.quit()   # 👈 Selenium is now gone forever
-    #result = {
-    #"status": "ok",
-    #"tickets_scraped": 5,
-    #"example_field": "test"
-    #}
-
-    # Write output.json in the current working directory
-    #with open("output.json", "w") as f:
-        #json.dump(result, f, indent=2)
     return session
 
 def getDashboardStatistics():
@@ -186,17 +175,28 @@ def getMyTickets(staff_ID,knownDatabaseIDs):
 def getTicketDetails(ticket_ID_database):
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
     ticketDetails = {}
-    containerNotes = html.find(id="ticketnotescontainerdiv").find_all("blockquote")
-    ticketDetails["note"] = containerNotes[-1].text.strip() if len(containerNotes) > 0 else ""
-    tableDamage = html.find("th",string="SCHADEN").find_parent("table")
+    containerNotes = html.find(id="ticketnotescontainerdiv")
+    if containerNotes:
+        blockquotes = containerNotes.find_all("blockquote")
+        ticketDetails["note"] = blockquotes[-1].text.strip() if len(blockquotes) > 0 else ""
+    ###
+    if int(ticket_ID_database) == 72613:
+        all_ths = html.find_all("th")
+        for th in all_ths:
+            print(repr(th.text))
+    ###
+    tableHeaderDamage = html.find("th", string=re.compile("SCHADEN"))
+    tableDamage = tableHeaderDamage.find_parent("table") if tableHeaderDamage else ""
     if tableDamage:
         damageDetails = getTableData(tableDamage)
         ticketDetails |= damageDetails
-    tableContactDetails = html.find("th",string="KONTAKTDATEN").find_parent("table")
+    tableHeaderContactDetails = html.find("th",string=re.compile("KONTAKTDATEN"))
+    tableContactDetails = tableHeaderContactDetails.find_parent("table") if tableHeaderContactDetails else ""
     if tableContactDetails:
         contactDetails = getTableData(tableContactDetails)
         ticketDetails |= contactDetails
-    tableOther = html.find("th",string="RESTLICHES (WICHTIG!)").find_parent("table")
+    tableHeaderOther = html.find("th",string=re.compile("RESTLICHES (WICHTIG!)"))
+    tableOther = tableHeaderOther.find_parent("table") if tableHeaderOther else ""
     if tableOther:
         otherDetails = getTableData(tableOther)
         ticketDetails |= otherDetails
@@ -336,12 +336,12 @@ def saveInGoogleSheets(data):
 
 # ---------- START: GETS THE PASSED PARAMETERS FROM GAS ----------
 if __name__ == "__main__":
-    dataReceived = json.loads(os.getenv("TICKET_DATA", "all"))
-    mode = os.getenv("MODE", "full") # No need so far
+    #dataReceived = json.loads(os.getenv("TICKET_DATA", "all"))
+    #mode = os.getenv("MODE", "full") # No need so far
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login()
-    #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
+    print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Data to send to Google Sheets
     dataToSend = {}
     # Scrape ticket overview
