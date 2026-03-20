@@ -336,12 +336,12 @@ def saveInGoogleSheets(data):
 
 # ---------- START: GETS THE PASSED PARAMETERS FROM GAS ----------
 if __name__ == "__main__":
-    #dataReceived = json.loads(os.getenv("TICKET_DATA", "all"))
-    #mode = os.getenv("MODE", "full") # No need so far
+    dataReceived = json.loads(os.getenv("TICKET_DATA", "all"))
+    mode = os.getenv("MODE", "full") # No need so far
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login()
-    print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
+    #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Data to send to Google Sheets
     dataToSend = {}
     # Scrape ticket overview
