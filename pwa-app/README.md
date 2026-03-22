@@ -1,108 +1,36 @@
-# PWA Starter with Next.js 15 and TypeScript 🚀
-
-A starter kit to quickly build fast, offline-capable Progressive Web Apps using Next.js 15 and TypeScript.  
-Includes service worker setup, manifest configuration, and ready-to-use PWA features for a seamless user experience across devices.
-
----
-
-## Features
-
-- Next.js 15 App Router architecture  
-- Offline support with Service Worker powered by `next-pwa`  
-- Complete PWA manifest with icons for installability  
-- Tailwind CSS for styling  
-- TypeScript support for type safety  
-
-**Check out the live version here: 🚀 [Live Demo on Netlify](https://miladjoodi.netlify.app/)**  
-
----
-
-![App Preview](https://s34.picofile.com/file/8486109668/pwa_1_.png)
-![App Preview](https://s34.picofile.com/file/8486109676/pwa_5_.png)
-![App Preview](https://s34.picofile.com/file/8486109692/pwa_2_.png)
-![App Preview](https://s34.picofile.com/file/8486109700/pwa_3_.png)
-![App Preview](https://s34.picofile.com/file/8486109718/pwa_4_.png)
-![App Preview](https://s34.picofile.com/file/8486109726/pwa_6_.png)
-
----
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-### Prerequisites
+First, run the development server:
 
-- Node.js (v18 or later recommended)  
-- npm or yarn  
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-### Installation
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-1. Clone the repository  
-   ```bash
-   git clone https://github.com/MiladJoodi/PWA_Starter.git
-   cd PWA_Starter
-   ```
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-2. Install dependencies  
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Run the development server  
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-4. Open your browser and navigate to [http://localhost:3000](http://localhost:3000)  
-
----
-
-## Scripts
-
-| Command         | Description                   |
-|------------------|-------------------------------|
-| `npm run dev`    | Starts the development server |
-| `npm run build`  | Builds the production app     |
-| `npm run start`  | Runs the production build     |
-| `npm run lint`   | Runs linting checks           |
-
----
-
-## Dependencies
-
-### Production
-
-- `next` 15.4.4 — React framework for server-rendered apps  
-- `next-pwa` ^5.6.0 — PWA support plugin for Next.js  
-- `react` 19.1.0 — UI library  
-- `react-dom` 19.1.0 — React DOM rendering  
-
-### Development
-
-- `@tailwindcss/postcss` ^4 — Tailwind CSS PostCSS plugin  
-- `@types/node` ^20 — Node.js types for TypeScript  
-- `@types/react` ^19 — React types for TypeScript  
-- `@types/react-dom` ^19 — React DOM types for TypeScript  
-- `tailwindcss` ^4 — Utility-first CSS framework  
-- `typescript` ^5 — TypeScript language  
-
----
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
 
-- [Next.js Documentation](https://nextjs.org/docs)  
-- [Progressive Web Apps (web.dev)](https://web.dev/progressive-web-apps/)  
-- [next-pwa GitHub](https://github.com/shadowwalker/next-pwa)  
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)  
+To learn more about Next.js, take a look at the following resources:
 
----
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## License
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-This project is licensed under the MIT License © Milad Joodi. Please give proper credit if you use or modify this code.
+## Deploy on Vercel
 
----
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Made with ❤️ by Milad Joodi
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
