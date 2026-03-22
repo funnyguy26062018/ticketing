@@ -179,12 +179,6 @@ def getTicketDetails(ticket_ID_database):
     if containerNotes:
         blockquotes = containerNotes.find_all("blockquote")
         ticketDetails["note"] = blockquotes[-1].text.strip() if len(blockquotes) > 0 else ""
-    ###
-    if int(ticket_ID_database) == 72613:
-        all_ths = html.find_all("th")
-        for th in all_ths:
-            print(repr(th.text))
-    ###
     tableHeaderDamage = html.find("th", string=re.compile("SCHADEN"))
     tableDamage = tableHeaderDamage.find_parent("table") if tableHeaderDamage else ""
     if tableDamage:
