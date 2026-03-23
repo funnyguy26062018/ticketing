@@ -1,6 +1,5 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'My PWA App',
@@ -14,27 +13,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.json" />
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#0070f3" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
-      <body>
-        {children}
-        <Script
-          id="register-sw"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js')
-                  .then(() => console.log('Service Worker registered'))
-                  .catch(err => console.log('Service Worker failed:', err));
-              }
-            `,
-          }}
-        />
-      </body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   )
 }
