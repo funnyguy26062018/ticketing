@@ -4,41 +4,29 @@ import { useEffect, useState } from 'react'
 
 export default function Home() {
   const [html, setHtml] = useState('')
-  const [gasHtml, setGasHtml] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch your main HTML
-    fetch('/my-site/index.html')
+    // Fetch your HTML file with basePath
+    fetch('/ticketing/my-site/index.html')
       .then(response => response.text())
       .then(htmlContent => {
         setHtml(htmlContent)
         setLoading(false)
       })
-      .catch(err => console.error('Error loading HTML:', err))
+      .catch(err => {
+        console.error('Error loading HTML:', err)
+        setLoading(false)
+      })
     
-    // Fetch GAS data
-    fetch('/api/gas')
+    // Fetch GAS data through API route
+    fetch('/ticketing/api/gas')
       .then(response => response.json())
       .then(data => {
-        console.log('GAS response:', data)
-        if (data.html) {
-          setGasHtml(data.html)
-        } else if (data.data) {
-          console.log('GAS data:', data.data)
-        }
+        console.log('GAS data received:', data)
       })
       .catch(err => console.error('GAS fetch error:', err))
   }, [])
-
-  // Inject GAS HTML into the page when it's ready
-  useEffect(() => {
-    if (gasHtml) {
-      window.dispatchEvent(new CustomEvent('gasDataLoaded', { 
-        detail: { html: gasHtml }
-      }))
-    }
-  }, [gasHtml])
 
   if (loading) {
     return (

@@ -3,14 +3,14 @@ const CACHE_NAME = 'my-pwa-v3';
 
 // Only cache these specific files
 const urlsToCache = [
-  '/',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/css/bootstrap.min.css',
-  '/css/bootstrap-icons.min.css',
-  '/fonts/bootstrap-icons.woff2',
-  '/fonts/bootstrap-icons.woff'
+  '/ticketing/',
+  '/ticketing/manifest.json',
+  '/ticketing/icon-192.png',
+  '/ticketing/icon-512.png',
+  '/ticketing/css/bootstrap.min.css',
+  '/ticketing/css/bootstrap-icons.min.css',
+  '/ticketing/fonts/bootstrap-icons.woff2',
+  '/ticketing/fonts/bootstrap-icons.woff'
 ];
 
 // Skip waiting and claim clients immediately

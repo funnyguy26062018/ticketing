@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'My PWA App',
   description: 'A Progressive Web App',
-  manifest: '/manifest.json',
+  manifest: '/ticketing/manifest.json',
 }
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#0070f3" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/ticketing/manifest.json" />
       </head>
       <body suppressHydrationWarning>{children}</body>
     </html>

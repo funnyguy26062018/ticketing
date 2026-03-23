@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  basePath: '/ticketing',
+  trailingSlash: true,
 }
 
 module.exports = nextConfig
