@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 
 export default function Home() {
   const [html, setHtml] = useState('')
+  const [gasData, setGasData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch your HTML file with basePath
+    // Fetch your HTML file
     fetch('/ticketing/my-site/index.html')
       .then(response => response.text())
       .then(htmlContent => {
@@ -19,14 +20,28 @@ export default function Home() {
         setLoading(false)
       })
     
-    // Fetch GAS data through API route
+    // Fetch GAS data
     fetch('/ticketing/api/gas')
       .then(response => response.json())
       .then(data => {
         console.log('GAS data received:', data)
+        setGasData(data)
+        // Dispatch event for the HTML to receive
+        window.dispatchEvent(new CustomEvent('gasDataLoaded', { 
+          detail: data 
+        }))
       })
       .catch(err => console.error('GAS fetch error:', err))
   }, [])
+
+  // Also dispatch when gasData changes
+  useEffect(() => {
+    if (gasData) {
+      window.dispatchEvent(new CustomEvent('gasDataLoaded', { 
+        detail: gasData 
+      }))
+    }
+  }, [gasData])
 
   if (loading) {
     return (

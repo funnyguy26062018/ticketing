@@ -231,5 +231,74 @@
 
 <!-- Add a placeholder where GAS content should go -->
 <div id="gas-content"></div>
+<script>
+  // Listen for GAS data from Next.js
+  window.addEventListener('gasDataLoaded', function(event) {
+    console.log('GAS Data received in HTML:', event.detail);
+    
+    // Store data globally for other scripts
+    window.gasData = event.detail;
+    
+    // Trigger any existing functions that need this data
+    if (typeof window.updateWithGASData === 'function') {
+      window.updateWithGASData(event.detail);
+    }
+    
+    // If you have a specific container for GAS content
+    const gasContainer = document.getElementById('gas-container');
+    if (gasContainer && event.detail.html) {
+      gasContainer.innerHTML = event.detail.html;
+    } else if (gasContainer && event.detail.data) {
+      // If the data is JSON, format it as HTML
+      gasContainer.innerHTML = '<pre>' + JSON.stringify(event.detail, null, 2) + '</pre>';
+    }
+    
+    // If you want to insert data into specific elements
+    // Example: If your GAS data has a 'tickets' field
+    if (event.detail.tickets) {
+      const ticketsDiv = document.getElementById('tickets-list');
+      if (ticketsDiv) {
+        ticketsDiv.innerHTML = event.detail.tickets;
+      }
+    }
+  });
+  
+  // Also check if data is already available
+  if (window.gasData) {
+    console.log('GAS Data already available:', window.gasData);
+    window.dispatchEvent(new CustomEvent('gasDataLoaded', { detail: window.gasData }));
+  }
+  
+  console.log('HTML script loaded, waiting for GAS data...');
+</script>
+
+<!-- Add a container for GAS content if you don't have one -->
+<div id="gas-container" style="margin: 20px 0;"></div>
+<script>
+  // Example function that uses GAS data
+  window.updateWithGASData = function(data) {
+    console.log('Updating page with GAS data:', data);
+    
+    // Find all elements with class 'gas-data'
+    document.querySelectorAll('.gas-data').forEach(el => {
+      const field = el.getAttribute('data-field');
+      if (field && data[field]) {
+        el.innerHTML = data[field];
+      }
+    });
+    
+    // If your GAS returns HTML
+    if (data.html) {
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.innerHTML = data.html;
+      }
+    }
+  };
+</script>
+
+<!-- Example elements that will get populated -->
+<div class="gas-data" data-field="message">Loading...</div>
+<div id="main-content"></div>
   </body>
 </html>
