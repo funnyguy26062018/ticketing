@@ -1,24 +1,28 @@
-// Service Worker for PWA
-const CACHE_NAME = 'my-pwa-v2';
+// Service Worker for PWA - Development Friendly
+const CACHE_NAME = 'my-pwa-v3';
 
-// Files to cache - only cache what exists
+// Only cache these specific files
 const urlsToCache = [
   '/',
   '/manifest.json',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/css/bootstrap.min.css',
+  '/css/bootstrap-icons.min.css',
+  '/fonts/bootstrap-icons.woff2',
+  '/fonts/bootstrap-icons.woff'
 ];
 
-// Install event - cache files
+// Skip waiting and claim clients immediately
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        // Try to cache each file, but don't fail if one doesn't exist
+        // Cache what we can, but don't fail if something doesn't exist
         return Promise.allSettled(
           urlsToCache.map(url => {
             return cache.add(url).catch(err => {
-              console.log(`Failed to cache ${url}:`, err);
+              console.log(`[SW] Failed to cache ${url}:`, err);
             });
           })
         );
@@ -27,35 +31,41 @@ self.addEventListener('install', event => {
   );
 });
 
-// Fetch event - serve from cache, fallback to network
+// For development: always try network first
 self.addEventListener('fetch', event => {
+  // Skip caching for API routes during development
+  if (event.request.url.includes('/api/') || event.request.url.includes('/my-site/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Return cached response if found
-        if (response) {
-          return response;
-        }
-        // Otherwise fetch from network
-        return fetch(event.request).catch(() => {
-          // If both fail, return a simple offline page
-          return new Response('Offline - content not available', {
-            status: 503,
-            statusText: 'Service Unavailable'
+        // Only cache successful responses
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
           });
-        });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fallback to cache if network fails
+        return caches.match(event.request);
       })
   );
 });
 
-// Activate event - clean old caches
+// Activate and clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('Deleting old cache:', cache);
+            console.log('[SW] Deleting old cache:', cache);
             return caches.delete(cache);
           }
         })
