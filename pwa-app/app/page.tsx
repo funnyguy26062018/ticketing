@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export default function Home() {
   const [html, setHtml] = useState('')
-  const [gasData, setGasData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Fetch your HTML file
@@ -19,29 +19,33 @@ export default function Home() {
         console.error('Error loading HTML:', err)
         setLoading(false)
       })
-    
-    // Fetch GAS data
-    fetch('/ticketing/api/gas')
-      .then(response => response.json())
-      .then(data => {
-        console.log('GAS data received:', data)
-        setGasData(data)
-        // Dispatch event for the HTML to receive
-        window.dispatchEvent(new CustomEvent('gasDataLoaded', { 
-          detail: data 
-        }))
-      })
-      .catch(err => console.error('GAS fetch error:', err))
   }, [])
 
-  // Also dispatch when gasData changes
+  // After HTML is injected, manually trigger initialization
   useEffect(() => {
-    if (gasData) {
-      window.dispatchEvent(new CustomEvent('gasDataLoaded', { 
-        detail: gasData 
-      }))
+    if (!loading && containerRef.current) {
+      // Find and execute any scripts that need to run
+      const scripts = containerRef.current.querySelectorAll('script')
+      scripts.forEach(oldScript => {
+        const newScript = document.createElement('script')
+        Array.from(oldScript.attributes).forEach(attr => {
+          newScript.setAttribute(attr.name, attr.value)
+        })
+        newScript.textContent = oldScript.textContent
+        oldScript.parentNode?.replaceChild(newScript, oldScript)
+      })
+      
+      // Manually trigger window.onload if it exists
+      if (typeof window.onload === 'function') {
+        window.onload()
+      }
+      
+      // Or trigger any specific initialization functions
+      if (typeof window.initPage === 'function') {
+        window.initPage()
+      }
     }
-  }, [gasData])
+  }, [loading, html])
 
   if (loading) {
     return (
@@ -59,6 +63,7 @@ export default function Home() {
 
   return (
     <div 
+      ref={containerRef}
       dangerouslySetInnerHTML={{ __html: html }}
       suppressHydrationWarning={true}
     />
