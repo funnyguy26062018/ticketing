@@ -2,6 +2,16 @@
 
 import { useEffect, useState, useRef } from 'react'
 
+// Declare the custom window properties
+declare global {
+  interface Window {
+    initPage?: () => void
+    onload?: (event: Event) => void
+    gasData?: any
+    updateWithGASData?: (data: any) => void
+  }
+}
+
 export default function Home() {
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(true)
@@ -37,8 +47,8 @@ export default function Home() {
       
       // Manually trigger window.onload if it exists
       if (typeof window.onload === 'function') {
-        // Call it with a mock event or as a function
-        window.onload({} as Event)
+        // Call it with a mock event
+        window.onload(new Event('load'))
       }
       
       // Or trigger any specific initialization functions
