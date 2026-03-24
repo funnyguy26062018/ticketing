@@ -37,7 +37,8 @@ export default function Home() {
       
       // Manually trigger window.onload if it exists
       if (typeof window.onload === 'function') {
-        window.onload()
+        // Call it with a mock event or as a function
+        window.onload({} as Event)
       }
       
       // Or trigger any specific initialization functions
