@@ -21,10 +21,10 @@ export default function Home() {
       })
   }, [])
 
-  // After HTML is injected, just execute scripts - let natural events fire
+  // After HTML is injected, execute scripts and trigger onload
   useEffect(() => {
     if (!loading && containerRef.current) {
-      // Execute any scripts so they can attach their event listeners
+      // Execute all scripts in the injected HTML
       const scripts = containerRef.current.querySelectorAll('script')
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script')
@@ -34,8 +34,11 @@ export default function Home() {
         newScript.textContent = oldScript.textContent
         oldScript.parentNode?.replaceChild(newScript, oldScript)
       })
-      // No manual calls to initPage or onload
-      // The page's natural window.onload will fire on its own
+      
+      // Manually dispatch the load event to trigger window.onload
+      // This ensures it fires after our HTML is fully in the DOM
+      const loadEvent = new Event('load')
+      window.dispatchEvent(loadEvent)
     }
   }, [loading, html])
 
