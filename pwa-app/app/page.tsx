@@ -2,16 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 
-// Declare the custom window properties
-declare global {
-  interface Window {
-    initPage?: () => void
-    onload?: (event: Event) => void
-    gasData?: any
-    updateWithGASData?: (data: any) => void
-  }
-}
-
 export default function Home() {
   const [html, setHtml] = useState('')
   const [loading, setLoading] = useState(true)
@@ -31,10 +21,10 @@ export default function Home() {
       })
   }, [])
 
-  // After HTML is injected, manually trigger initialization
+  // After HTML is injected, just execute scripts - let natural events fire
   useEffect(() => {
     if (!loading && containerRef.current) {
-      // Find and execute any scripts that need to run
+      // Execute any scripts so they can attach their event listeners
       const scripts = containerRef.current.querySelectorAll('script')
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script')
@@ -44,17 +34,8 @@ export default function Home() {
         newScript.textContent = oldScript.textContent
         oldScript.parentNode?.replaceChild(newScript, oldScript)
       })
-      
-      // Manually trigger window.onload if it exists
-      if (typeof window.onload === 'function') {
-        // Call it with a mock event
-        window.onload(new Event('load'))
-      }
-      
-      // Or trigger any specific initialization functions
-      if (typeof window.initPage === 'function') {
-        window.initPage()
-      }
+      // No manual calls to initPage or onload
+      // The page's natural window.onload will fire on its own
     }
   }, [loading, html])
 

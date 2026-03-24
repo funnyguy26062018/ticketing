@@ -75,20 +75,11 @@
         const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
         const parameters = "function=getOpenTicketsHTML";
         debugger;
-        console.log("hier");
         const response = await fetch(urlGAS + "?" + parameters);
         const res = await response.json();
         console.log(res);
         renderOpenTickets(res);
       }
-       // Add a manual initialization function that Next.js can call
-        window.initPage = function() {
-            console.log('initPage called manually');
-            // Trigger the same logic as window.onload
-            if (typeof window.onload === 'function') {
-            window.onload();
-            }
-        }
       // Inserts the constructed HTML fragment of the open tickets
       function renderOpenTickets(openTicketsHTML)
       {

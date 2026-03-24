@@ -1,28 +1,23 @@
-// Service Worker for PWA - Development Friendly
-const CACHE_NAME = 'my-pwa-v3';
+// Service Worker for PWA
+const CACHE_NAME = 'my-pwa-v4';
 
-// Only cache these specific files
+// Only cache files that actually exist
 const urlsToCache = [
   '/ticketing/',
   '/ticketing/manifest.json',
   '/ticketing/icon-192.png',
-  '/ticketing/icon-512.png',
-  '/ticketing/css/bootstrap.min.css',
-  '/ticketing/css/bootstrap-icons.min.css',
-  '/ticketing/fonts/bootstrap-icons.woff2',
-  '/ticketing/fonts/bootstrap-icons.woff'
+  '/ticketing/icon-512.png'
 ];
 
-// Skip waiting and claim clients immediately
+// Install event - cache files
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        // Cache what we can, but don't fail if something doesn't exist
         return Promise.allSettled(
           urlsToCache.map(url => {
             return cache.add(url).catch(err => {
-              console.log(`[SW] Failed to cache ${url}:`, err);
+              console.log(`[SW] Skipping ${url}:`, err.message);
             });
           })
         );
@@ -31,18 +26,12 @@ self.addEventListener('install', event => {
   );
 });
 
-// For development: always try network first
+// Fetch event - network first, cache fallback
 self.addEventListener('fetch', event => {
-  // Skip caching for API routes during development
-  if (event.request.url.includes('/api/') || event.request.url.includes('/my-site/')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-  
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Only cache successful responses
+        // Cache successful responses
         if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -52,13 +41,12 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Fallback to cache if network fails
         return caches.match(event.request);
       })
   );
 });
 
-// Activate and clean old caches
+// Activate event
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
