@@ -66,6 +66,7 @@
     <script>
       // Global variables
       var batchTimer;
+      var isRunning = false;
       const timeAfterLastCardButtonPressed = 60; // Time in s
       const timerToCheckProcessStatus = 30 // Time in s
       // Loads tickets on startup
@@ -85,7 +86,8 @@
       {
         // Displays the HTML ticket list
         const container = document.getElementById("ticketList");
-        container.innerHTML = openTicketsHTML
+        container.innerHTML = openTicketsHTML;
+        restorePendingState();
       }
       // Activated by pressing the card (ticket) button
       function completeTicket(thisButton)
@@ -112,26 +114,67 @@
               "note": card.querySelector("textarea").value
             };
           });
+          // Retrieves the just completed tickets as well as the pending ones
+          const ticketsToSend = getFromLocalStorage().concat(dataCompletedCards);
           // Fetches all enabled buttons
           const enabledButtons = Array.from(listCards.querySelectorAll("button:not([disabled])"));
           // Disable all enabled buttons
           enabledButtons.forEach(button => button.disabled = true);
-          // Send the data to the backend
-          google.script.run.withSuccessHandler(responseCode => {
-            if(responseCode !== 204)
-            {
-              // Enable all disabled buttons
-              enabledButtons.forEach(button => button.disabled = false);
-              return false;
-            }
-            pollFromServer(completedCards,enabledButtons);
-          }).markTicketsDone(dataCompletedCards);
+          //
+          sendToServer(ticketsToSend,enabledButtons);
         }, timeAfterLastCardButtonPressed * 1000);
       }
 
-      function pollFromServer(completedCards,disabledButtons)
+      // Sends the data to the server
+      function sendToServer(ticketsCompleted,disabledButtons)
       {
-        const cardIDsCompletedSet = new Set(completedCards.map(card => card.id));
+        if(isRunning)
+        {
+          sendToServerFailure(ticketsCompleted);
+          return false;
+        }
+        isRunning = true;
+        // Send the data to the backend
+        google.script.run.withSuccessHandler(responseCode => {
+          if(responseCode === 204)
+          {
+            pollFromServer(ticketsCompleted,disabledButtons);
+          }
+          else
+          {
+            sendToServerFailure(ticketsCompleted,disabledButtons);
+          }
+        }).withFailureHandler(() => {
+          //const pendingTickets = JSON.parse(localStorage["pendingTickets"] || "[]");
+          sendToServerFailure(ticketsCompleted,disabledButtons);
+        }).markTicketsDone(ticketsCompleted);
+      }
+
+      function sendToServerFailure(ticketsCompleted,disabledButtons)
+      {
+        //localStorage["pendingTickets"] = JSON.stringify(ticketsCompleted);
+        saveToLocalStorage(ticketsCompleted);
+        // Enable all disabled buttons
+        disabledButtons.forEach(button => button.disabled = false);
+        isRunning = false;
+      }
+
+      function getFromLocalStorage()
+      {
+        const pendingTickets = JSON.parse(localStorage["pendingTickets"] || "[]");
+        delete localStorage["pendingTickets"];
+        return pendingTickets;
+      }
+
+      function saveToLocalStorage(ticketsCompleted)
+      {
+        const pendingTickets = JSON.parse(localStorage["pendingTickets"] || "[]");
+        localStorage["pendingTickets"] = JSON.stringify(pendingTickets.concat(ticketsCompleted));
+      }
+
+      function pollFromServer(ticketsCompleted,disabledButtons)
+      {
+        const cardIDsCompletedSet = new Set(ticketsCompleted.map(ticket => ticket["databaseID"]));
         // Repeatedly polls the number of tickets and re-enables the buttons on ticket storage success
         const timerResetButtons = setInterval(() => {
             google.script.run.withSuccessHandler(databaseIDsDone => {
@@ -145,6 +188,7 @@
                 // Fetches all disabled buttons
                 disabledButtons.forEach(button => button.disabled = false);
                 clearInterval(timerResetButtons);
+                isRunning = false;
               }
             }).getDatabaseIDsConfirmed(Array.from(cardIDsCompletedSet));
           }, timerToCheckProcessStatus * 1000);
@@ -157,6 +201,51 @@
         card.style.transition = "0.5s";
         card.style.opacity = "0";
         setTimeout(() => card.remove(), 500);
+      }
+
+      // Listens for online event - auto sync when internet returns
+      window.ononline = function()
+      {
+        sendPendingTickets();
+      }
+      document.onvisibilitychange = function ()
+      {
+        if(document.visibilityState === "visible")
+        {
+          sendPendingTickets();
+        }
+      }
+      // Defaults to localStorage read if called without argument
+      function sendPendingTickets(pendingTickets = getFromLocalStorage())
+      {
+        //const pendingTickets = getFromLocalStorage();
+        if(pendingTickets.length === 0) return false;
+        const disabledButtons = pendingTickets.map(ticket => {
+          const card = document.getElementById(ticket["databaseID"]);
+          const button = card?.querySelector("button");
+          return button;
+        }).filter(Boolean);
+        sendToServer(pendingTickets,disabledButtons);
+      }
+
+      function restorePendingState()
+      {
+        const pendingTickets = getFromLocalStorage();
+        if(pendingTickets.length === 0) return false;
+        pendingTickets.forEach(ticket => {
+          const card = document.getElementById(ticket["databaseID"]);
+          // The card was already confirmed and removed from backend
+          if(!card) return false;
+          const textarea = card.querySelector("textarea");
+          // Restores the note the user typed
+          textarea.value = ticket["note"];
+          textarea.disabled = true;
+          const button = card.querySelector("button");
+          button.innerText = "Syncing...";
+          button.disabled = true;
+        });
+        // Now attempts to sync immediately
+        sendPendingTickets(pendingTickets);
       }
       //
       /*function ticketUpdateError(err)
