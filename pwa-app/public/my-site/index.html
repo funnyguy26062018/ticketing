@@ -69,17 +69,20 @@
       var isRunning = false;
       const timeAfterLastCardButtonPressed = 60; // Time in s
       const timerToCheckProcessStatus = 30 // Time in s
+      const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
+
       // Loads tickets on startup
-      window.onload = async function()
+      window.onload = function()
       {
-        //google.script.run.withSuccessHandler(renderOpenTickets).getOpenTicketsHTML();
-        const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
-        const parameters = "function=getOpenTicketsHTML";
-        debugger;
-        const response = await fetch(urlGAS + "?" + parameters);
-        const res = await response.json();
-        console.log(res);
-        renderOpenTickets(res);
+        registerSW();
+        const dataToSend = {
+            "function": "getOpenTicketsHTML"
+        };
+        const callbacks = {
+            onSuccess: renderOpenTickets,
+            onFailure: () => console.error("Failed to load tickets")
+        };
+        sendToGAS("get", dataToSend, callbacks);
       }
       // Inserts the constructed HTML fragment of the open tickets
       function renderOpenTickets(openTicketsHTML)
@@ -130,29 +133,37 @@
       {
         if(isRunning)
         {
-          sendToServerFailure(ticketsCompleted);
+          sendToServerFailure(ticketsCompleted,disabledButtons);
           return false;
         }
         isRunning = true;
         // Send the data to the backend
-        google.script.run.withSuccessHandler(responseCode => {
-          if(responseCode === 204)
-          {
-            pollFromServer(ticketsCompleted,disabledButtons);
-          }
-          else
-          {
+        const dataToSend = {
+            "function": "markTicketsDone",
+            "argument": ticketsCompleted
+        };
+        const onSuccess = responseCode => {
+            if(responseCode === 204)
+            {
+                pollFromServer(ticketsCompleted,disabledButtons);
+            }
+            else
+            {
+                sendToServerFailure(ticketsCompleted,disabledButtons);
+            }
+        };
+        const onFailure = () => {
             sendToServerFailure(ticketsCompleted,disabledButtons);
-          }
-        }).withFailureHandler(() => {
-          //const pendingTickets = JSON.parse(localStorage["pendingTickets"] || "[]");
-          sendToServerFailure(ticketsCompleted,disabledButtons);
-        }).markTicketsDone(ticketsCompleted);
+        };
+        const callbacks = {
+            "onSuccess": onSuccess,
+            "onFailure": onFailure
+        };
+        sendToGAS("post",dataToSend,callbacks);
       }
 
       function sendToServerFailure(ticketsCompleted,disabledButtons)
       {
-        //localStorage["pendingTickets"] = JSON.stringify(ticketsCompleted);
         saveToLocalStorage(ticketsCompleted);
         // Enable all disabled buttons
         disabledButtons.forEach(button => button.disabled = false);
@@ -177,7 +188,11 @@
         const cardIDsCompletedSet = new Set(ticketsCompleted.map(ticket => ticket["databaseID"]));
         // Repeatedly polls the number of tickets and re-enables the buttons on ticket storage success
         const timerResetButtons = setInterval(() => {
-            google.script.run.withSuccessHandler(databaseIDsDone => {
+            const dataToSend = {
+                "function": "getDatabaseIDsConfirmed",
+                "argument": Array.from(cardIDsCompletedSet)
+            };
+            const onSuccess = databaseIDsDone => {
               /* TICKETS STORED IN DATABASE */
               databaseIDsDone.forEach(databaseID => {
                 ticketUpdateSuccessful(document.getElementById(databaseID));
@@ -190,8 +205,47 @@
                 clearInterval(timerResetButtons);
                 isRunning = false;
               }
-            }).getDatabaseIDsConfirmed(Array.from(cardIDsCompletedSet));
+            };
+            const callbacks = {
+                "onSuccess": onSuccess,
+                "onFailure": false
+            };
+            sendToGAS("post",dataToSend,callbacks);
           }, timerToCheckProcessStatus * 1000);
+      }
+
+      async function sendToGAS(method,dataToSend,callbacks)
+      {
+        var url = urlGAS;
+        var options;
+        if(method.toLowerCase() === "get")
+        {
+            const params = new URLSearchParams(dataToSend);
+            url = urlGAS + "?" + params;
+            options = {
+                method: "GET"
+            };
+        }
+        else
+        {
+            const options = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(dataToSend)   
+            };
+        }
+        try
+        {
+            const responseJSON = await fetch(url,options);
+            const response = await responseJSON.json();
+            callbacks["onSuccess"](response);
+        }
+        catch
+        {
+            if(callbacks["onFailure"]) callbacks["onFailure"]();
+        }
       }
 
       // Called when the finished tickets are successfully sent
@@ -255,15 +309,24 @@
         buttonElement.innerText = "Error! Try Again";
         alert("Failed to update: " + err.message);
       }*/
+     // Register service worker
+    async function registerSW()
+    {
+        if("serviceWorker" in navigator)
+        {
+            try
+            {
+                const reg = await navigator.serviceWorker.register('/ticketing/sw.js');
+                console.log('✅ Service Worker registered:', reg);
+            }
+            catch(err)
+            {
+                console.log('❌ Service Worker failed:', err);
+            }
+        }
+    };
     </script>
     <script>
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/ticketing/sw.js')
-        .then(reg => console.log('✅ Service Worker registered:', reg))
-        .catch(err => console.log('❌ Service Worker failed:', err));
-    }
-
     // Handle install prompt
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
