@@ -1,7 +1,7 @@
 // Service Worker for PWA
-const CACHE_NAME = 'my-pwa-v4';
+const CACHE_NAME = 'my-pwa-v5';
 
-// Only cache files that actually exist
+// Only cache our own domain files
 const urlsToCache = [
   '/ticketing/',
   '/ticketing/manifest.json',
@@ -26,16 +26,30 @@ self.addEventListener('install', event => {
   );
 });
 
-// Fetch event - network first, cache fallback
+// Fetch event - only handle requests from our domain
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  
+  // Ignore requests from extensions, chrome://, etc.
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+  
+  // Ignore requests not from our domain
+  if (!url.hostname.includes('funnyguy26062018.github.io') && url.hostname !== 'localhost') {
+    return;
+  }
+  
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cache successful responses
-        if (response && response.status === 200) {
+        // Only cache successful responses from our domain
+        if (response && response.status === 200 && event.request.method === 'GET') {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
+            cache.put(event.request, responseClone).catch(err => {
+              // Silently fail - likely extension request
+            });
           });
         }
         return response;
