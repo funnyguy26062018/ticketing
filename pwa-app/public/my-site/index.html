@@ -82,7 +82,7 @@
             onSuccess: renderOpenTickets,
             onFailure: () => console.error("Failed to load tickets")
         };
-        sendToGAS("get", dataToSend, callbacks);
+        sendToGAS(dataToSend, callbacks);
       }
       // Inserts the constructed HTML fragment of the open tickets
       function renderOpenTickets(openTicketsHTML)
@@ -159,7 +159,7 @@
             "onSuccess": onSuccess,
             "onFailure": onFailure
         };
-        sendToGAS("post",dataToSend,callbacks);
+        sendToGAS(dataToSend,callbacks);
       }
 
       function sendToServerFailure(ticketsCompleted,disabledButtons)
@@ -210,15 +210,15 @@
                 "onSuccess": onSuccess,
                 "onFailure": false
             };
-            sendToGAS("post",dataToSend,callbacks);
+            sendToGAS(dataToSend,callbacks);
           }, timerToCheckProcessStatus * 1000);
       }
 
-      async function sendToGAS(method,dataToSend,callbacks)
+      async function sendToGAS(dataToSend,callbacks)
       {
         var url = urlGAS;
         var options;
-        if(method.toLowerCase() === "get")
+        if(!Object.hasOwn(dataToSend,"argument"))
         {
             const params = new URLSearchParams(dataToSend);
             url = urlGAS + "?" + params;
