@@ -1,6 +1,6 @@
 {
-  "name": "My PWA App",
-  "short_name": "PWA App",
+  "name": "Ticketing App Studierendenwerk HD",
+  "short_name": "Ticketing STW HD",
   "description": "A Progressive Web App",
   "start_url": "/ticketing/",
   "display": "standalone",
