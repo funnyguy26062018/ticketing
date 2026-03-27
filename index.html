@@ -322,7 +322,7 @@
         {
             try
             {
-                const reg = await navigator.serviceWorker.register('/sw.js', {
+                const reg = await navigator.serviceWorker.register('/ticketing/sw.js', {
                     scope: '/'
                 });
                 console.log('✅ Service Worker registered:', reg);
