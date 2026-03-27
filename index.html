@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ticketing Studierendenwerk HD</title>
     <link rel="apple-touch-icon" href="/ticketing/repair-tools.svg">
-    <link rel="manifest" href="/ticketing/manifest.json">
+    const urlGAS = "";
+
+    <link rel="manifest" href="https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec?manifest=true">
     <!-- <link rel="manifest" href="<?= urlGAS ?>?manifest=true"> -->
     <meta name="theme-color" content="#0070f3">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -322,8 +324,8 @@
         {
             try
             {
-                const reg = await navigator.serviceWorker.register('/ticketing/sw.js', {
-                    scope: '/ticketing/'
+                const reg = await navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
                 });
                 console.log('✅ Service Worker registered:', reg);
             }

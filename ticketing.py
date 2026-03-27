@@ -17,8 +17,6 @@ import os
 
 
 # ---------- CONFIG ----------
-USERNAME = "schuessler@stwhd"
-PASSWORD = "triumph01"
 LOGIN_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php"
 DASHBOARD_URL = "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Base/Home/Index"
 # "https://dev.nexabit.net/apps/stwhd/staff/index.php?/Tickets/Search/UnresolvedOwner/" + STAFF ID
@@ -54,7 +52,7 @@ APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8f
 
 
 # ---------- FUNCTION DECLARATIONS ----------
-def login():
+def login(credentials):
     # ---------- SETUP SELENIUM ----------
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")   # Run headless (no GUI)
@@ -70,8 +68,8 @@ def login():
     # Open login page
     driver.get(LOGIN_URL)
     # Fill login form
-    driver.find_element(By.ID, "username").send_keys(USERNAME)
-    driver.find_element(By.ID, "password").send_keys(PASSWORD)
+    driver.find_element(By.ID, "username").send_keys(credentials["username"])
+    driver.find_element(By.ID, "password").send_keys(credentials["password"])
     driver.find_element(By.NAME, "submitbutton").click()
     # Wait for dashboard to load
     wait = WebDriverWait(driver, 10)
@@ -334,7 +332,7 @@ if __name__ == "__main__":
     mode = os.getenv("MODE", "full") # No need so far
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
-    session = login()
+    session = login(dataReceived["credentials"])
     #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Data to send to Google Sheets
     dataToSend = {}
