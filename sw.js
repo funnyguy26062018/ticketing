@@ -3,10 +3,10 @@ const CACHE_NAME = 'my-pwa-v5';
 
 // Only cache our own domain files
 const urlsToCache = [
-  '/ticketing/',
-  '/ticketing/manifest.json',
-  '/ticketing/icon-192.png',
-  '/ticketing/icon-512.png'
+  '/',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 // Install event - cache files
