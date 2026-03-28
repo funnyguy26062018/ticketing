@@ -20,6 +20,7 @@ jobs:
 
       - name: Write files to repo
         run: |
+          cat files.json
           jq -c 'to_entries[]' files.json | while read entry; do
             name=$(echo $entry | jq -r '.key')
             path=$(echo $entry | jq -r '.value.path')
