@@ -57,6 +57,8 @@ jobs:
       
           echo "=== BEFORE ADD ==="
           git status
+          
+          rm -f files.json
       
           git add -A
       
