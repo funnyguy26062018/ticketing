@@ -20,36 +20,19 @@ jobs:
 
       - name: Write files to repo
         run: |
-          set -e
-      
           echo "Starting file sync..."
-          cat files.json
       
-          jq -r 'to_entries[] | @base64' files.json | while IFS= read -r entry; do
-      
-            _jq() {
-              echo "$entry" | base64 --decode | jq -r "$1"
-            }
-      
-            key=$(_jq '.key')
-            path=$(_jq '.value.path')
-            content=$(_jq '.value.content')
+          jq -r 'to_entries | .[] | "\(.key)\u0000\(.value.path)\u0000\(.value.content)"' files.json |
+          while IFS=$'\u0000' read -r key path content; do
       
             echo "Writing: $key → $path"
       
-            # safety check
-            if [ -z "$path" ] || [ "$path" = "null" ]; then
-              echo "ERROR: empty or null path for $key"
-              exit 1
-            fi
-      
-            clean_path=$(echo "$path" | sed 's|^/||')
+            clean_path="${path#/}"
       
             mkdir -p "$(dirname "$clean_path")"
             printf "%s" "$content" > "$clean_path"
       
           done
-
       - name: Check for changes
         id: diff
         run: |
