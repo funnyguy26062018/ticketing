@@ -21,10 +21,22 @@ jobs:
       - name: Write files to repo
         run: |
           cat files.json
-          jq -c 'to_entries[]' files.json | while read entry; do
-            name=$(echo $entry | jq -r '.key')
-            path=$(echo $entry | jq -r '.value.path')
-            content=$(echo $entry | jq -r '.value.content')
+          jq -r 'to_entries[] | @base64' files.json | while read entry; do
+
+            _jq() {
+              echo "$entry" | base64 --decode | jq -r "$1"
+            }
+          
+            name=$(_jq '.key')
+            path=$(_jq '.value.path')
+            content=$(_jq '.value.content')
+          
+            clean_path=$(echo "$path" | sed 's|^/||')
+          
+            mkdir -p "$(dirname "$clean_path")"
+            printf "%s" "$content" > "$clean_path"
+          
+          done
 
             echo "Writing $path"
 
