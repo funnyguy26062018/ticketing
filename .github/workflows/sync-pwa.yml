@@ -15,7 +15,7 @@ jobs:
 
       - name: Fetch files from GAS
         run: |
-          BASE_URL="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+          BASE_URL="https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
           curl -L "$BASE_URL?update=files" -o files.json
 
       - name: Write files to repo
