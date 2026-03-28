@@ -21,17 +21,25 @@ jobs:
       - name: Write files to repo
         run: |
           echo "Starting file sync..."
-      
-          jq -r 'to_entries | .[] | "\(.key)\u0000\(.value.path)\u0000\(.value.content)"' files.json |
-          while IFS=$'\u0000' read -r key path content; do
-      
+          
+          jq -c 'to_entries[]' files.json | while read -r entry; do
+          
+            key=$(echo "$entry" | jq -r '.key')
+            path=$(echo "$entry" | jq -r '.value.path')
+            content=$(echo "$entry" | jq -r '.value.content')
+          
             echo "Writing: $key → $path"
-      
+          
+            if [ -z "$path" ]; then
+              echo "ERROR: empty path for $key"
+              exit 1
+            fi
+          
             clean_path="${path#/}"
-      
+          
             mkdir -p "$(dirname "$clean_path")"
             printf "%s" "$content" > "$clean_path"
-      
+          
           done
       - name: Check for changes
         id: diff
