@@ -102,7 +102,36 @@
       
       async function sendDataToBackend(dataToSend,callbacks)
       {
-        google.script.run.withSuccessHandler(callbacks["onSuccess"]).withFailureHandler(callbacks["onFailure"]).bridgeFrontendBackend(dataToSend);
+        var url = urlGAS;
+  var options;
+  if(!Object.hasOwn(dataToSend,"argument"))
+  {
+    const params = new URLSearchParams(dataToSend);
+    url = urlGAS + "?" + params;
+    options = {
+      method: "GET"
+    };
+  }
+  else
+  {
+    options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dataToSend)   
+    };
+  }
+  try
+  {
+    const responseJSON = await fetch(url,options);
+    const response = await responseJSON.json();
+    callbacks["onSuccess"](response);
+  }
+  catch
+  {
+    if(callbacks["onFailure"]) callbacks["onFailure"]();
+  }
       }
 
       
