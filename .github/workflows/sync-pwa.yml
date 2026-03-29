@@ -3,7 +3,7 @@ name: Sync PWA files from GAS
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"  # every 10 minutes
+    - cron: "*/10 * * * *"
 
 jobs:
   sync:
@@ -21,15 +21,11 @@ jobs:
           BASE_URL="https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
           curl -L "$BASE_URL?update=files" -o files.json
 
-      # 🔥 STEP 1 — Download icons from manifest (using "url")
-      - name: Download icons from Google Drive
+      # 🔥 Download icons
+      - name: Download icons
         run: |
-          echo "Processing manifest for icons..."
-
           manifest=$(jq -r '.["manifest.json"].content' files.json)
           echo "$manifest" > manifest.tmp.json
-
-          mkdir -p ticketing
 
           icon_count=$(jq '.icons | length' manifest.tmp.json)
 
@@ -38,19 +34,17 @@ jobs:
             src=$(jq -r ".icons[$i].src" manifest.tmp.json)
 
             if [ "$url" = "null" ] || [ "$src" = "null" ]; then
-              echo "Skipping icon $i (missing url or src)"
               continue
             fi
 
             filename=$(basename "$src")
 
-            echo "Downloading $url → ticketing/$filename"
-
-            curl -L "$url" -o "ticketing/$filename"
+            echo "Downloading → $filename"
+            curl -L "$url" -o "$filename"
           done
 
-      # 🔥 STEP 2 — Remove "url" from manifest before writing
-      - name: Clean manifest (remove url field)
+      # 🔥 Clean manifest
+      - name: Remove url from manifest
         run: |
           jq '."manifest.json".content |= (
             fromjson
@@ -60,23 +54,19 @@ jobs:
 
           mv files.cleaned.json files.json
 
-      # 🔥 STEP 3 — Write files to repo
-      - name: Write files to repo
+      # 🔥 Write files
+      - name: Write files
         run: |
-          echo "Writing files..."
-
           echo "$(<files.json)" | jq -r 'to_entries[] | @base64' | while read entry; do
 
             _jq() {
               echo "$entry" | base64 --decode | jq -r "$1"
             }
 
-            key=$(_jq '.key')
             path=$(_jq '.value.path')
             content=$(_jq '.value.content')
 
             if [ -z "$path" ] || [ "$path" = "null" ]; then
-              echo "Skipping $key (no path)"
               continue
             fi
 
@@ -89,12 +79,9 @@ jobs:
 
           done
 
-      # 🔥 STEP 4 — Clean temp files
-      - name: Cleanup temp files
-        run: |
-          rm -f files.json manifest.tmp.json
+      - name: Cleanup
+        run: rm -f files.json manifest.tmp.json
 
-      # 🔥 STEP 5 — Commit & push
       - name: Commit & push
         run: |
           git config user.name "github-actions"
@@ -103,7 +90,7 @@ jobs:
           git add -A
 
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
             exit 0
           fi
 
