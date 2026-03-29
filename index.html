@@ -140,7 +140,7 @@
       function completeTicket(thisButton)
       {
         
-        
+        clearTimeout(batchTimer);
         
         const thisCard = thisButton.closest(".card");
         const thisTextArea = thisCard.querySelector("textarea");
@@ -251,7 +251,10 @@
                 isRunning = false;
               }
             },
-            "onFailure": () => console.error("Failed to confirm tickets")
+            "onFailure": () => {
+              console.error("Failed to confirm tickets");
+              
+            }
           };
           sendDataToBackend(dataToSend,callbacks);
         }, timerToCheckProcessStatus * 1000);
@@ -285,6 +288,7 @@
 
       function restorePendingState()
       {
+        isRunning = true;
         const pendingTickets = getFromLocalStorage();
         if(pendingTickets.length === 0) return false;
         pendingTickets.forEach(ticket => {
@@ -301,8 +305,9 @@
         });
         batchTimer = setTimeout(() => {
           sendPendingTickets();
-        }, timeAfterLastCardButtonPressed);
+        }, timeAfterLastCardButtonPressed * 1000);
         saveToLocalStorage(pendingTickets);
+        isRunning = false;
         
         
         
