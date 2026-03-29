@@ -1,20 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- <title>Ticketing Studierendenwerk HD</title> -->
-    <link rel="apple-touch-icon" href="https://drive.google.com/uc?export=view&id=1GIHmXmZjnOW5PAGDM7-EbJSZR1YK9UOB">
-    <link rel="manifest" href="https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec?manifest=true">
-    <!-- <link rel="manifest" href="<?= urlGAS ?>?manifest=true"> -->
+    
+    
+    
+    
+    
+    
     <meta name="theme-color" content="#0070f3">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="icon" href="data:,">
     <style>
       html
       {
-        font-size: clamp(8px, 1.5vw, 16px);  /* ← drives everything on the page */
+        font-size: clamp(8px, 1.5vw, 16px);   
       }
       body
       {
@@ -23,17 +24,17 @@
       }
       .color-building-group-header
       {
-        top: 1vw; /* Distance from the top of the phone screen */
+        top: 1vw;  
         z-index: 1020;
         opacity: 0.95;
-        -webkit-backdrop-filter: blur(5px); /* Safari */
-        backdrop-filter: blur(5px); /* Modern glass effect */
+        -webkit-backdrop-filter: blur(5px);  
+        backdrop-filter: blur(5px);  
         width: 90vw;
         box-sizing: border-box;
         margin-left: auto;
         margin-right: auto;
       }
-      /* Border color and group header color */
+       
       .color-building-27
       {
         background-color: #CD5C5C !important;
@@ -49,11 +50,11 @@
         background-color: #fb8c00 !important;
         border-left: 6px solid #fb8c00 !important;
       }
-      /* Global Color Card Reset */
+       
       .ticket-card
       {
-        width: 90vw;          /* always 90% of screen width */
-        max-width: 100%;      /* still won't overflow on very small screens */
+        width: 90vw;           
+        max-width: 100%;       
         margin-left: auto;
         margin-right: auto;
         margin-bottom: 1em;
@@ -71,14 +72,14 @@
     </div>
 
     <script>
-      // Global variables
+      
       var batchTimer;
       var isRunning = false;
-      const timeAfterLastCardButtonPressed = 60; // Time in s
-      const timerToCheckProcessStatus = 30 // Time in s
+      const timeAfterLastCardButtonPressed = 60; 
+      const timerToCheckProcessStatus = 30 
       const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
 
-      // Loads tickets on startup
+      
       window.onload = function()
       {
         registerSW();
@@ -86,96 +87,101 @@
             "function": "getOpenTicketsHTML"
         };
         const callbacks = {
-            onSuccess: renderOpenTickets,
-            onFailure: () => console.error("Failed to load tickets")
+          
+          onSuccess: (openTicketsHTML) => {
+            
+            const container = document.getElementById("ticketList");
+            container.innerHTML = openTicketsHTML;
+            restorePendingState();
+          },
+          onFailure: () => console.error("Failed to load tickets")
         };
-        sendToGAS(dataToSend, callbacks);
-      }
-      // Inserts the constructed HTML fragment of the open tickets
-      function renderOpenTickets(openTicketsHTML)
-      {
-        // Displays the HTML ticket list
-        const container = document.getElementById("ticketList");
-        container.innerHTML = openTicketsHTML;
-        restorePendingState();
-      }
-      // Activated by pressing the card (ticket) button
-      function completeTicket(thisButton)
-      {
-        // Resets on every click
-        clearTimeout(batchTimer);
-        // Disables the text area in the current card
-        const thisTextArea = thisButton.closest(".card").querySelector("textarea");
-        thisTextArea.disabled = true;
-        // Deactivates the button pressed on the card (ticket)
-        thisButton.disabled = true;
-        thisButton.innerText = "Syncing...";
-        // Starts the timer in ms to wait until the finished tickets will be sent
-        batchTimer = setTimeout(() => {
-          /* SCRAPES ALL DATABASE IDs OF THE FINISHED TICKETS */
-          const listCards = document.getElementById("ticketList");
-          // All disabled buttons
-          const disabledButtons = listCards.querySelectorAll("button[disabled]");
-          // Creates an array from a node list, iterates over the disabled buttons and finds the parent card element to get the (database) ID
-          const completedCards = Array.from(disabledButtons).map(button => button.closest(".card"));
-          const dataCompletedCards = completedCards.map(card => {
-            return {
-              "databaseID": card.id,
-              "note": card.querySelector("textarea").value
-            };
-          });
-          // Retrieves the just completed tickets as well as the pending ones
-          const ticketsToSend = getFromLocalStorage().concat(dataCompletedCards);
-          // Fetches all enabled buttons
-          const enabledButtons = Array.from(listCards.querySelectorAll("button:not([disabled])"));
-          // Disable all enabled buttons
-          enabledButtons.forEach(button => button.disabled = true);
-          //
-          sendToServer(ticketsToSend,enabledButtons);
-        }, timeAfterLastCardButtonPressed * 1000);
+        sendDataToBackend(dataToSend,callbacks);
       }
 
-      // Sends the data to the server
-      function sendToServer(ticketsCompleted,disabledButtons)
+      
+      async function sendDataToBackend(dataToSend,callbacks)
+      {
+        google.script.run.withSuccessHandler(callbacks["onSuccess"]).withFailureHandler(callbacks["onFailure"]).bridgeFrontendBackend(dataToSend);
+      }
+
+      
+      function completeTicket(thisButton)
+      {
+        
+        
+        
+        const thisCard = thisButton.closest(".card");
+        const thisTextArea = thisCard.querySelector("textarea");
+        thisTextArea.disabled = true;
+        
+        thisButton.innerText = "Syncing...";
+        thisButton.disabled = true;
+        
+        batchTimer = setTimeout(() => {
+          console.log("sending...");
+           
+          
+          
+          
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          sendPendingTickets();
+        }, timeAfterLastCardButtonPressed * 1000);
+        const ticketCompleted = {
+          "databaseID": thisCard.id,
+          "note": thisTextArea.value
+        };
+        saveToLocalStorage([ticketCompleted]);
+      }
+
+      
+      function sendPendingTickets()
       {
         if(isRunning)
         {
-          sendToServerFailure(ticketsCompleted,disabledButtons);
+          
+          
           return false;
         }
         isRunning = true;
-        // Send the data to the backend
+        const ticketsCompleted = getFromLocalStorage();
+        
         const dataToSend = {
             "function": "markTicketsDone",
             "argument": ticketsCompleted
         };
-        const onSuccess = responseCode => {
+        const callbacks = {
+          "onSuccess": (responseCode) => {
             if(responseCode === 204)
             {
-                pollFromServer(ticketsCompleted,disabledButtons);
+              pollFromServer(ticketsCompleted);
             }
             else
             {
-                sendToServerFailure(ticketsCompleted,disabledButtons);
+              
+              saveToLocalStorage(ticketsCompleted);
+              isRunning = false;
             }
+          },
+          "onFailure": () => {
+            
+            saveToLocalStorage(ticketsCompleted);
+            isRunning = false;
+          }
         };
-        const onFailure = () => {
-            sendToServerFailure(ticketsCompleted,disabledButtons);
-        };
-        const callbacks = {
-            "onSuccess": onSuccess,
-            "onFailure": onFailure
-        };
-        sendToGAS(dataToSend,callbacks);
+        sendDataToBackend(dataToSend,callbacks);
       }
 
-      function sendToServerFailure(ticketsCompleted,disabledButtons)
-      {
-        saveToLocalStorage(ticketsCompleted);
-        // Enable all disabled buttons
-        disabledButtons.forEach(button => button.disabled = false);
-        isRunning = false;
-      }
+
 
       function getFromLocalStorage()
       {
@@ -190,104 +196,61 @@
         localStorage["pendingTickets"] = JSON.stringify(pendingTickets.concat(ticketsCompleted));
       }
 
-      function pollFromServer(ticketsCompleted,disabledButtons)
+      function pollFromServer(ticketsCompleted)
       {
         const cardIDsCompletedSet = new Set(ticketsCompleted.map(ticket => ticket["databaseID"]));
-        // Repeatedly polls the number of tickets and re-enables the buttons on ticket storage success
+        
         const timerResetButtons = setInterval(() => {
-            const dataToSend = {
-                "function": "getDatabaseIDsConfirmed",
-                "argument": Array.from(cardIDsCompletedSet)
-            };
-            const onSuccess = databaseIDsDone => {
-              /* TICKETS STORED IN DATABASE */
+          const dataToSend = {
+            "function": "getDatabaseIDsConfirmed",
+            "argument": Array.from(cardIDsCompletedSet)
+          };
+          const callbacks = {
+            "onSuccess": (databaseIDsDone) => {
+               
               databaseIDsDone.forEach(databaseID => {
                 ticketUpdateSuccessful(document.getElementById(databaseID));
                 cardIDsCompletedSet.delete(databaseID);
               });
               if(cardIDsCompletedSet.size === 0)
               {
-                // Fetches all disabled buttons
-                disabledButtons.forEach(button => button.disabled = false);
+                
+                
                 clearInterval(timerResetButtons);
                 isRunning = false;
               }
-            };
-            const callbacks = {
-                "onSuccess": onSuccess,
-                "onFailure": false
-            };
-            sendToGAS(dataToSend,callbacks);
-          }, timerToCheckProcessStatus * 1000);
+            },
+            "onFailure": () => console.error("Failed to confirm tickets")
+          };
+          sendDataToBackend(dataToSend,callbacks);
+        }, timerToCheckProcessStatus * 1000);
       }
 
-      async function sendToGAS(dataToSend,callbacks)
-      {
-        var url = urlGAS;
-        var options;
-        if(!Object.hasOwn(dataToSend,"argument"))
-        {
-            const params = new URLSearchParams(dataToSend);
-            url = urlGAS + "?" + params;
-            options = {
-                method: "GET"
-            };
-        }
-        else
-        {
-            options = {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(dataToSend)   
-            };
-        }
-        try
-        {
-            const responseJSON = await fetch(url,options);
-            const response = await responseJSON.json();
-            callbacks["onSuccess"](response);
-        }
-        catch
-        {
-            if(callbacks["onFailure"]) callbacks["onFailure"]();
-        }
-      }
-
-      // Called when the finished tickets are successfully sent
+      
       function ticketUpdateSuccessful(card)
       {
-        // Removes the card from the UI
+        
         card.style.transition = "0.5s";
         card.style.opacity = "0";
         setTimeout(() => card.remove(), 500);
       }
 
-      // Listens for online event - auto sync when internet returns
+      
       window.ononline = function()
       {
         sendPendingTickets();
       }
-      document.onvisibilitychange = function ()
+      document.onvisibilitychange = function()
       {
+        
         if(document.visibilityState === "visible")
         {
           sendPendingTickets();
         }
       }
-      // Defaults to localStorage read if called without argument
-      function sendPendingTickets(pendingTickets = getFromLocalStorage())
-      {
-        //const pendingTickets = getFromLocalStorage();
-        if(pendingTickets.length === 0) return false;
-        const disabledButtons = pendingTickets.map(ticket => {
-          const card = document.getElementById(ticket["databaseID"]);
-          const button = card?.querySelector("button");
-          return button;
-        }).filter(Boolean);
-        sendToServer(pendingTickets,disabledButtons);
-      }
+      
+      
+
 
       function restorePendingState()
       {
@@ -295,80 +258,43 @@
         if(pendingTickets.length === 0) return false;
         pendingTickets.forEach(ticket => {
           const card = document.getElementById(ticket["databaseID"]);
-          // The card was already confirmed and removed from backend
+          
           if(!card) return false;
           const textarea = card.querySelector("textarea");
-          // Restores the note the user typed
+          
           textarea.value = ticket["note"];
           textarea.disabled = true;
           const button = card.querySelector("button");
           button.innerText = "Syncing...";
           button.disabled = true;
         });
-        // Now attempts to sync immediately
-        sendPendingTickets(pendingTickets);
+        batchTimer = setTimeout(() => {
+          sendPendingTickets();
+        }, timeAfterLastCardButtonPressed);
+        saveToLocalStorage(pendingTickets);
+        
+        
+        
       }
-      //
-      /*function ticketUpdateError(err)
+      
+      
+
+      
+      async function registerSW()
       {
-        // 4. Error Handling
-        buttonElement.disabled = false;
-        buttonElement.innerText = "Error! Try Again";
-        alert("Failed to update: " + err.message);
-      }*/
-     // Register service worker
-    async function registerSW()
-    {
         if("serviceWorker" in navigator)
         {
-            try
-            {
-                const reg = await navigator.serviceWorker.register('/ticketing/sw.js');
-                console.log('✅ Service Worker registered:', reg);
-            }
-            catch(err)
-            {
-                console.log('❌ Service Worker failed:', err);
-            }
+          try
+          {
+            const reg = await navigator.serviceWorker.register('/ticketing/sw.js');
+            console.log('✅ Service Worker registered:', reg);
+          }
+          catch(err)
+          {
+            console.log('❌ Service Worker failed:', err);
+          }
         }
-    };
-    </script>
-    <script>
-    // Handle install prompt
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        console.log('✅ App can be installed');
-        
-        // Create and show install button
-        /*const installBtn = document.createElement('button');
-        installBtn.textContent = '📱 Install App';
-        installBtn.style.position = 'fixed';
-        installBtn.style.bottom = '20px';
-        installBtn.style.right = '20px';
-        installBtn.style.padding = '12px 24px';
-        installBtn.style.background = '#0070f3';
-        installBtn.style.color = 'white';
-        installBtn.style.border = 'none';
-        installBtn.style.borderRadius = '8px';
-        installBtn.style.cursor = 'pointer';
-        installBtn.style.zIndex = '1000';
-        installBtn.style.fontSize = '16px';
-        
-        installBtn.onclick = () => {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(choice => {
-            if (choice.outcome === 'accepted') {
-            console.log('User accepted install');
-            }
-            installBtn.remove();
-            deferredPrompt = null;
-        });
-        };
-        
-        document.body.appendChild(installBtn);*/
-    });
+      };
     </script>
   </body>
 </html>
