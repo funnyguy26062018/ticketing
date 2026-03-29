@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     
-    <link rel="apple-touch-icon" href="/file.svg">
+    <link rel="apple-touch-icon" href="./file.svg">
     
     <meta name="theme-color" content="#0070f3">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -82,6 +82,8 @@
       
       window.onload = function()
       {
+        
+
         registerSW();
         const dataToSend = {
             "function": "getOpenTicketsHTML"
@@ -315,7 +317,7 @@
         {
           try
           {
-            const reg = await navigator.serviceWorker.register('/ticketing/sw.js');
+            const reg = await navigator.serviceWorker.register("./sw.js");
             console.log('✅ Service Worker registered:', reg);
           }
           catch(err)

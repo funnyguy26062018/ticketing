@@ -2,7 +2,7 @@
   const CACHE_NAME = "my-pwa-v5";
 
   // Only cache our own domain files
-  const urlsToCache = ["/manifest.json","/index.html","/file.svg","/repair-tools.png"];
+  const urlsToCache = ["/manifest.json","/index.html","file.svg","repair-tools.png"];
 
   // Install event - cache files
   self.oninstall = (event) => {
