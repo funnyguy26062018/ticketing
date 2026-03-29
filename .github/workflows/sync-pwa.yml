@@ -9,6 +9,9 @@ jobs:
   sync:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -18,106 +21,91 @@ jobs:
           BASE_URL="https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
           curl -L "$BASE_URL?update=files" -o files.json
 
-      - name: Process manifest & download icons
+      # 🔥 STEP 1 — Download icons from manifest (using "url")
+      - name: Download icons from Google Drive
         run: |
-          echo "Processing manifest icons..."
-      
-          # Extract manifest content
+          echo "Processing manifest for icons..."
+
           manifest=$(jq -r '.["manifest.json"].content' files.json)
-      
-          # Write it temporarily
           echo "$manifest" > manifest.tmp.json
-      
-          # Extract icons
-          icon_count=$(jq '.icons | length' manifest.tmp.json)
-      
+
           mkdir -p ticketing
-      
+
+          icon_count=$(jq '.icons | length' manifest.tmp.json)
+
           for ((i=0; i<icon_count; i++)); do
+            url=$(jq -r ".icons[$i].url" manifest.tmp.json)
             src=$(jq -r ".icons[$i].src" manifest.tmp.json)
-      
-            echo "Processing icon: $src"
-      
-            # Extract Google Drive file ID
-            file_id=$(echo "$src" | sed -n 's/.*id=\([^&]*\).*/\1/p')
-      
-            if [ -z "$file_id" ]; then
-              echo "Skipping non-Google-Drive icon"
+
+            if [ "$url" = "null" ] || [ "$src" = "null" ]; then
+              echo "Skipping icon $i (missing url or src)"
               continue
             fi
-      
-            # Determine filename
-            size=$(jq -r ".icons[$i].sizes" manifest.tmp.json)
-            ext=$(jq -r ".icons[$i].type" manifest.tmp.json | sed 's/image\///')
-      
-            filename="icon-$size.$ext"
-            filename=$(echo "$filename" | sed 's/ /-/g')
-      
-            echo "Downloading → ticketing/$filename"
-      
-            curl -L "https://drive.google.com/uc?export=download&id=$file_id" \
-              -o "ticketing/$filename"
-      
-            # Rewrite manifest entry
-            jq ".icons[$i].src = \"/ticketing/$filename\"" manifest.tmp.json > tmp.$$.json
-            mv tmp.$$.json manifest.tmp.json
-          done
-      
-          # Save updated manifest back into files.json
-          updated_manifest=$(cat manifest.tmp.json | jq -c .)
-      
-          jq ".\"manifest.json\".content = \"$updated_manifest\"" files.json > files.updated.json
-      
-          mv files.updated.json files.json
 
+            filename=$(basename "$src")
+
+            echo "Downloading $url → ticketing/$filename"
+
+            curl -L "$url" -o "ticketing/$filename"
+          done
+
+      # 🔥 STEP 2 — Remove "url" from manifest before writing
+      - name: Clean manifest (remove url field)
+        run: |
+          jq '."manifest.json".content |= (
+            fromjson
+            | .icons |= map(del(.url))
+            | tojson
+          )' files.json > files.cleaned.json
+
+          mv files.cleaned.json files.json
+
+      # 🔥 STEP 3 — Write files to repo
       - name: Write files to repo
         run: |
-          echo "Starting file sync..."
-          
-          jq -c 'to_entries[]' files.json | while read -r entry; do
-          
-            key=$(echo "$entry" | jq -r '.key')
-            path=$(echo "$entry" | jq -r '.value.path')
-            content=$(echo "$entry" | jq -r '.value.content')
-          
-            echo "Writing: $key → $path"
-          
-            if [ -z "$path" ]; then
-              echo "ERROR: empty path for $key"
-              exit 1
+          echo "Writing files..."
+
+          echo "$(<files.json)" | jq -r 'to_entries[] | @base64' | while read entry; do
+
+            _jq() {
+              echo "$entry" | base64 --decode | jq -r "$1"
+            }
+
+            key=$(_jq '.key')
+            path=$(_jq '.value.path')
+            content=$(_jq '.value.content')
+
+            if [ -z "$path" ] || [ "$path" = "null" ]; then
+              echo "Skipping $key (no path)"
+              continue
             fi
-          
-            clean_path="${path#/}"
-          
+
+            clean_path=$(echo "$path" | sed 's|^/||')
+
+            echo "Writing → $clean_path"
+
             mkdir -p "$(dirname "$clean_path")"
             printf "%s" "$content" > "$clean_path"
-          
-          done
-      - name: Check for changes
-        id: diff
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
 
-      - name: Commit & push changes
+          done
+
+      # 🔥 STEP 4 — Clean temp files
+      - name: Cleanup temp files
+        run: |
+          rm -f files.json manifest.tmp.json
+
+      # 🔥 STEP 5 — Commit & push
+      - name: Commit & push
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-      
-          echo "=== BEFORE ADD ==="
-          git status
-          
-          rm -f files.json
-      
+
           git add -A
-      
-          echo "=== AFTER ADD ==="
-          git status
-      
-          git commit -m "Sync PWA files from GAS" || echo "No changes to commit"
-      
-          echo "=== PUSHING ==="
-          git push origin HEAD:main
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Sync PWA files from GAS"
+          git push
