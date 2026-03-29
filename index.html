@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon">
     
     
     <link rel="manifest" href="./manifest.json">
@@ -230,34 +231,37 @@
       function pollFromServer(ticketsCompleted)
       {
         const cardIDsCompletedSet = new Set(ticketsCompleted.map(ticket => ticket["databaseID"]));
-        
-        const timerResetButtons = setInterval(() => {
-          const dataToSend = {
-            "function": "getDatabaseIDsConfirmed",
-            "argument": Array.from(cardIDsCompletedSet)
-          };
-          const callbacks = {
-            "onSuccess": (databaseIDsDone) => {
-               
-              databaseIDsDone.forEach(databaseID => {
-                ticketUpdateSuccessful(document.getElementById(databaseID));
-                cardIDsCompletedSet.delete(databaseID);
-              });
-              if(cardIDsCompletedSet.size === 0)
-              {
+        setTimeout(() => {
+          
+          
+          const timerResetButtons = setInterval(() => {
+            const dataToSend = {
+              "function": "getDatabaseIDsConfirmed",
+              "argument": Array.from(cardIDsCompletedSet)
+            };
+            const callbacks = {
+              "onSuccess": (databaseIDsDone) => {
+                 
+                databaseIDsDone.forEach(databaseID => {
+                  ticketUpdateSuccessful(document.getElementById(databaseID));
+                  cardIDsCompletedSet.delete(databaseID);
+                });
+                if(cardIDsCompletedSet.size === 0)
+                {
+                  
+                  
+                  clearInterval(timerResetButtons);
+                  isRunning = false;
+                }
+              },
+              "onFailure": () => {
+                console.error("Failed to confirm tickets");
                 
-                
-                clearInterval(timerResetButtons);
-                isRunning = false;
               }
-            },
-            "onFailure": () => {
-              console.error("Failed to confirm tickets");
-              
-            }
-          };
-          sendDataToBackend(dataToSend,callbacks);
-        }, timerToCheckProcessStatus * 1000);
+            };
+            sendDataToBackend(dataToSend,callbacks);
+          }, timerToCheckProcessStatus * 1000);
+        }, 2 * timerToCheckProcessStatus * 1000);
       }
 
       
