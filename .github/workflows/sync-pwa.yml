@@ -20,6 +20,9 @@ jobs:
         run: |
           BASE_URL="https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec"
           curl -L "$BASE_URL?update=files" -o files.json
+
+          - name: Debug raw GAS response
+            run: cat files.json | head -c 500
         
       # 🔥 Download icons
       - name: Download icons
