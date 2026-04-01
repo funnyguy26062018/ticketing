@@ -271,9 +271,10 @@
           
           var pollAttempts = 0;
           const timerResetButtons = setInterval(() => {
+            
             const dataToSend = {
               "function": "getDatabaseIDsConfirmed",
-              "argument": Array.from(ticketsToConfirmSet)
+              "argument": Array.from(ticketsToConfirmSet) 
             };
             const callbacks = {
               "onSuccess": async (databaseIDsDone) => {
@@ -292,6 +293,7 @@
                   isRunning = false;
                   return false;
                 }
+                
                 if(pollAttempts >= pollAttemptsMax)
                 {
                   
@@ -312,6 +314,7 @@
             sendDataToBackend(dataToSend,callbacks);
           }, timerToCheckProcessStatus * 1000);
         }, 2 * timerToCheckProcessStatus * 1000);
+        
       }
 
       
