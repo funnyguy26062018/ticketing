@@ -96,26 +96,34 @@ def login(credentials):
 def getDashboardStatistics():
     # After login the dashboard webpage is automatically loaded
     html = getParsedHTML(session, DASHBOARD_URL)
-    elements = html.find_all(class_="dashboardprogress")
-    staff_tickets = {}
-    for element in elements:
-        element_name = element.find(class_="dashboardprogresstitle")
-        element_amount = element.find(class_="dashboardprogresscount")
-        name = element_name.text.strip() or ""
-        amount = int(element_amount.text.strip()) or 0
-        #if "STWHD.FM" in name: amount_total = amount
-        #if "Sebastian" in name and "Linn" in name: amount_person = amount
-        staff_tickets[name] = amount
-    #if amount_total != 0:
-        #percentage_person = amount_person / amount_total * 100
-        #percentage_person_rounded = round(percentage_person, 0)
-    #else:
-        #percentage_person_rounded = "Division by 0"
-    #print(amount_total)
-    #print(amount_person)
-    #print(percentage_person)
-    #print(percentage_person_rounded)
-    return staff_tickets
+    dashboardStatistics = {}
+    sections = html.find_all(class_="dashboardprogresscontainer")
+    for container in sections:
+        th = container.find("th")
+        if not th:
+            continue
+        sectionName = th.text.strip()
+        elements = container.find_all(class_="dashboardprogress")
+        ticketsSection = {}
+        for element in elements:
+            element_name = element.find(class_="dashboardprogresstitle")
+            element_amount = element.find(class_="dashboardprogresscount")
+            name = element_name.text.strip() or ""
+            amount = int(element_amount.text.strip()) if element_amount and element_amount.text.strip().isdigit() else 0
+            #if "STWHD.FM" in name: amount_total = amount
+            #if "Sebastian" in name and "Linn" in name: amount_person = amount
+            ticketsSection[name] = amount
+        #if amount_total != 0:
+            #percentage_person = amount_person / amount_total * 100
+            #percentage_person_rounded = round(percentage_person, 0)
+        #else:
+            #percentage_person_rounded = "Division by 0"
+        #print(amount_total)
+        #print(amount_person)
+        #print(percentage_person)
+        #print(percentage_person_rounded)
+        dashboardStatistics[sectionName] = ticketsSection
+    return dashboardStatistics
 
 def getTickets(knownDatabaseIDs):
     tickets_employees = []
@@ -177,18 +185,22 @@ def getTicketDetails(ticket_ID_database):
     if containerNotes:
         blockquotes = containerNotes.find_all("blockquote")
         ticketDetails["note"] = blockquotes[-1].text.strip() if len(blockquotes) > 0 else ""
-    tableHeaderDamage = html.find("th", string=re.compile("SCHADEN"))
-    tableDamage = tableHeaderDamage.find_parent("table") if tableHeaderDamage else ""
+    tableHeadings = html.find_all("th")
+    #tableHeaderDamage = html.find("th", string=re.compile("SCHADEN"))
+    #tableDamage = tableHeaderDamage.find_parent("table") if tableHeaderDamage else ""
+    tableDamage = getTable(["SCHADEN"],tableHeadings)
     if tableDamage:
         damageDetails = getTableData(tableDamage)
         ticketDetails |= damageDetails
-    tableHeaderContactDetails = html.find("th",string=re.compile("KONTAKTDATEN"))
-    tableContactDetails = tableHeaderContactDetails.find_parent("table") if tableHeaderContactDetails else ""
+    #tableHeaderContactDetails = html.find("th",string=re.compile("KONTAKTDATEN"))
+    #tableContactDetails = tableHeaderContactDetails.find_parent("table") if tableHeaderContactDetails else ""
+    tableContactDetails = getTable(["KONTAKTDATEN"],tableHeadings)
     if tableContactDetails:
         contactDetails = getTableData(tableContactDetails)
         ticketDetails |= contactDetails
-    tableHeaderOther = html.find("th",string=re.compile("RESTLICHES (WICHTIG!)"))
-    tableOther = tableHeaderOther.find_parent("table") if tableHeaderOther else ""
+    #tableHeaderOther = html.find("th",string=re.compile("RESTLICHES (WICHTIG!)"))
+    #tableOther = tableHeaderOther.find_parent("table") if tableHeaderOther else ""
+    tableOther = getTable(["RESTLICHES","WICHTIG"],tableHeadings)
     if tableOther:
         otherDetails = getTableData(tableOther)
         ticketDetails |= otherDetails
@@ -197,43 +209,72 @@ def getTicketDetails(ticket_ID_database):
         if message: ticketDetails["message"] = message.text.strip()
     return ticketDetails
 
+def getTable(headerWords,elements):
+    for element in elements:
+        text = element.get_text().lower()
+        if all(headerWord.lower() in text for headerWord in headerWords):
+            return element.find_parent("table")
+    return False
+
 def getTableData(table):
     ticketDetails = {}
     tableRows = table.find_all("tr")
     for tableRow in tableRows:
         tableData = tableRow.find_all("td")
-        if len(tableData) == 0: continue
-        field = tableData[0].text.strip().rstrip(":")
-        value = tableData[1].text.strip()
-        if field == "Betrifft mein Zimmer":
+        if len(tableData) != 2: continue
+        field = tableData[0].get_text(strip=True).rstrip(":")
+        value = tableData[1].get_text(strip=True)
+        if not field or not value:
+            continue
+        #if field == "Betrifft mein Zimmer":
+        if isIncluded(field, ["Betrifft","Zimmer"]):
             ticketDetails["regardingRoom"] = value
-        elif field == "Betrifft":
+        #elif field == "Betrifft":
+        elif isIncluded(field, ["Betrifft"], ["Zimmer"]):
             ticketDetails["type"] = value
-        elif field == "Beschreibung":
+        #elif field == "Beschreibung":
+        elif isIncluded(field, ["Beschreibung"]):
             ticketDetails["description"] = value
-        elif field == "Mieter-Typ":
+        #elif field == "Mieter-Typ":
+        elif isIncluded(field, ["Mieter","Typ"]):
             ticketDetails["typeTenant"] = value
-        elif field == "Anrede":
+        #elif field == "Anrede":
+        elif isIncluded(field, ["Anrede"]):
             ticketDetails["salutation"] = value
-        elif field == "Nachname, Vorname":
+        #elif field == "Nachname, Vorname":
+        elif isIncluded(field, ["Nachname", "Vorname"]):
             ticketDetails["firstLastName"] = value
-        elif field == "Wohnanlage":
+        #elif field == "Wohnanlage":
+        elif isIncluded(field, ["Wohnanlage"]):
             ticketDetails["building"] = value
-        elif field == "Zimmernr.":
+        #elif field == "Zimmernr.":
+        elif isIncluded(field, ["Zimmernr"]):
             ticketDetails["roomNumber"] = value
-        elif field == "E-Mail Adresse":
+        #elif field == "E-Mail Adresse":
+        elif isIncluded(field, ["Mail", "Adresse"]):
             ticketDetails["email"] = value
-        elif field == "Telefonnr.":
+        #elif field == "Telefonnr.":
+        elif isIncluded(field, ["Telefonnr"]):
             ticketDetails["phoneNumber"] = value
-        elif field == "Zugang in meiner Abwesenheit":
+        #elif field == "Zugang in meiner Abwesenheit":
+        elif isIncluded(field, ["Zugang", "Abwesenheit"]):
             ticketDetails["accessGranted"] = value
-        elif field == "Weitergabe der E-Mail Adresse":
+        #elif field == "Weitergabe der E-Mail Adresse":
+        elif isIncluded(field, ["Weitergabe", "Mail", "Adresse"]):
             ticketDetails["emailForwarding"] = value
-        elif field == "Weitergabe der Telefonnummer":
+        #elif field == "Weitergabe der Telefonnummer":
+        elif isIncluded(field, ["Weitergabe", "Telefonnummer"]):
             ticketDetails["phoneNumberForwarding"] = value
         else:
             ticketDetails.setdefault("unmappedFields", []).append(field)
     return ticketDetails
+
+def isIncluded(text, keysYes, keysNo = None):
+    includeNo = True
+    text = text.lower()
+    if keysNo is not None:
+        includeNo = not any(key.lower() in text for key in keysNo)
+    return all(key.lower() in text for key in keysYes) and includeNo
 
 # Updates the ticket statuses
 def updateTickets(tickets):
@@ -333,6 +374,11 @@ if __name__ == "__main__":
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login(dataReceived["credentials"])
+    #a = "" in "test"
+    #session = login({
+    #    "username": "schuessler@stwhd",
+    #    "password": "triumph01"
+   # })
     #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Data to send to Google Sheets
     dataToSend = {}
@@ -343,6 +389,7 @@ if __name__ == "__main__":
     updateTickets(dataReceived["ticketsCompleted"])
     # Gets the already registered database IDs (tickets)
     knownDatabaseIDs = set(dataReceived["databaseIDs"])
+    #knownDatabaseIDs = []
     # Scrape my tickets
     dataToSend["myTickets"] = getTickets(knownDatabaseIDs)
     print("My tickets: " + json.dumps(dataToSend["myTickets"], ensure_ascii=False, indent=2))
