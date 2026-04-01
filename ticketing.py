@@ -374,11 +374,6 @@ if __name__ == "__main__":
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login(dataReceived["credentials"])
-    #a = "" in "test"
-    #session = login({
-    #    "username": "schuessler@stwhd",
-    #    "password": "triumph01"
-   # })
     #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Data to send to Google Sheets
     dataToSend = {}
