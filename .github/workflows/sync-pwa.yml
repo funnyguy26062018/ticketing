@@ -44,15 +44,14 @@ jobs:
       # 🔥 Extract base64-encoded files (e.g. ticketing.py)
       - name: Extract base64 file entries
         run: |
-          jq -r '
-            to_entries[]
-            | select(.value.content | test("^\"\\{"))  # content is a JSON-stringified object
-            | .key as $key
-            | .value.path as $path
-            | (.value.content | fromjson) as $inner
-            | select($inner.base64 != null)
-            | [$path, $inner.base64] | @tsv
-          ' files.json | while IFS=$'\t' read -r path b64; do
+          jq -c 'to_entries[]' files.json | while read -r entry; do
+            path=$(echo "$entry" | jq -r '.value.path')
+            content=$(echo "$entry" | jq -r '.value.content')
+
+            # Try to parse content as JSON — if it has a base64 field, handle it
+            b64=$(echo "$content" | jq -r '.base64 // empty' 2>/dev/null)
+            if [ -z "$b64" ]; then continue; fi
+
             clean_path=$(echo "$path" | sed 's|^/||')
             echo "Writing (base64) → $clean_path"
             mkdir -p "$(dirname "$clean_path")"
@@ -62,19 +61,16 @@ jobs:
       # 🔥 Write remaining text files
       - name: Write files
         run: |
-          echo "$(<files.json)" | jq -r 'to_entries[] | @base64' | while read entry; do
-            _jq() {
-              echo "$entry" | base64 --decode | jq -r "$1"
-            }
-            path=$(_jq '.value.path')
-            content=$(_jq '.value.content')
-            if [ -z "$path" ] || [ "$path" = "null" ]; then
-              continue
-            fi
-            # Skip entries whose content is a JSON-stringified base64 object (handled above)
-            if echo "$content" | jq -e 'type == "object" and .base64 != null' > /dev/null 2>&1; then
-              continue
-            fi
+          jq -c 'to_entries[]' files.json | while read -r entry; do
+            path=$(echo "$entry" | jq -r '.value.path')
+            content=$(echo "$entry" | jq -r '.value.content')
+
+            if [ -z "$path" ] || [ "$path" = "null" ]; then continue; fi
+
+            # Skip base64 object entries — already handled above
+            b64=$(echo "$content" | jq -r '.base64 // empty' 2>/dev/null)
+            if [ -n "$b64" ]; then continue; fi
+
             clean_path=$(echo "$path" | sed 's|^/||')
             echo "Writing → $clean_path"
             mkdir -p "$(dirname "$clean_path")"
