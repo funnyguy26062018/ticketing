@@ -40,6 +40,15 @@ jobs:
             echo "$b64" | base64 --decode > "$filename"
           done
 
+      - name: Debug files.json
+        run: |
+          echo "=== File size ==="
+          wc -c files.json
+          echo "=== Top-level keys ==="
+          python3 -c "import json,sys; d=json.load(open('files.json')); print(list(d.keys()))"
+          echo "=== Content lengths per key ==="
+          python3 -c "import json,sys; d=json.load(open('files.json')); [print(k, len(str(v.get('content','')))) for k,v in d.items()]"
+
       - name: Flatten icon src in manifest
         run: |
           jq '.["manifest.json"].content |= (
