@@ -50,6 +50,11 @@ jobs:
           )' files.json > files.cleaned.json
           mv files.cleaned.json files.json
 
+      - name: Debug files.json size
+        run: |
+          wc -c files.json
+          jq 'keys' files.json
+
       # 🔥 Extract base64-encoded files (e.g. ticketing.py)
       - name: Extract base64 file entries
         run: |
