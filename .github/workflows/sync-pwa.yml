@@ -17,7 +17,6 @@ jobs:
           curl -L "$BASE_URL?update=files" -o files.json
       - name: Debug raw GAS response
         run: cat files.json | head -c 500
-
       - name: Validate GAS response
         run: |
           if ! jq empty files.json 2>/dev/null; then
@@ -58,37 +57,35 @@ jobs:
       # 🔥 Extract base64-encoded files (e.g. ticketing.py)
       - name: Extract base64 file entries
         run: |
-          keys=$(jq -r 'keys[]' files.json)
+          jq -r 'keys[]' files.json > /tmp/keys.txt
           while IFS= read -r key; do
             path=$(jq -r --arg k "$key" '.[$k].path' files.json)
-            content=$(jq -r --arg k "$key" '.[$k].content' files.json)
-            b64=$(echo "$content" | jq -r '.base64 // empty' 2>/dev/null)
+            b64=$(jq -r --arg k "$key" '.[$k].content | fromjson | .base64 // empty' files.json 2>/dev/null)
             if [ -z "$b64" ]; then continue; fi
             clean_path=$(echo "$path" | sed 's|^/||')
             echo "Writing (base64) → $clean_path"
             mkdir -p "$(dirname "$clean_path")"
             echo "$b64" | base64 --decode > "$clean_path"
-          done <<< "$keys"
+          done < /tmp/keys.txt
 
       # 🔥 Write remaining text files
       - name: Write files
         run: |
-          keys=$(jq -r 'keys[]' files.json)
+          jq -r 'keys[]' files.json > /tmp/keys.txt
           while IFS= read -r key; do
             path=$(jq -r --arg k "$key" '.[$k].path' files.json)
-            content=$(jq -r --arg k "$key" '.[$k].content' files.json)
             if [ -z "$path" ] || [ "$path" = "null" ]; then continue; fi
-            b64=$(echo "$content" | jq -r '.base64 // empty' 2>/dev/null)
+            b64=$(jq -r --arg k "$key" '.[$k].content | fromjson | .base64 // empty' files.json 2>/dev/null)
             if [ -n "$b64" ]; then continue; fi
+            content=$(jq -r --arg k "$key" '.[$k].content' files.json)
             clean_path=$(echo "$path" | sed 's|^/||')
             echo "Writing → $clean_path"
             mkdir -p "$(dirname "$clean_path")"
             printf "%s" "$content" > "$clean_path"
-          done <<< "$keys"
-          
-      - name: Cleanup
-        run: rm -f files.json manifest.tmp.json
+          done < /tmp/keys.txt
 
+      - name: Cleanup
+        run: rm -f files.json manifest.tmp.json /tmp/keys.txt
       - name: Commit & push
         run: |
           git config user.name "github-actions"
