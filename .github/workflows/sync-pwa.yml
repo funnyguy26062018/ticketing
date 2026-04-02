@@ -18,6 +18,15 @@ jobs:
       - name: Debug raw GAS response
         run: cat files.json | head -c 500
 
+      - name: Validate GAS response
+        run: |
+          if ! jq empty files.json 2>/dev/null; then
+            echo "❌ GAS did not return valid JSON. Raw response:"
+            cat files.json
+            exit 1
+          fi
+          echo "✅ Valid JSON received"
+
       # 🔥 Download icons
       - name: Download icons
         run: |
