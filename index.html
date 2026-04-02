@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    
+    <link rel="manifest" href="./manifest.json">
+    
+    <link rel="icon" type="image/png" href="repair-tools.png">
+    
+    <link rel="apple-touch-icon" href="./repair-tools.png">
+    
+    <meta name="theme-color" content="#0070f3">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+      html
+      {
+        font-size: clamp(8px, 1.5vw, 16px);   
+      }
+      body
+      {
+        background-color: #f8f9fa;
+        padding: 1rem;
+      }
+      .color-building-group-header
+      {
+        top: 1vw;  
+        z-index: 1020;
+        opacity: 0.95;
+        -webkit-backdrop-filter: blur(5px);  
+        backdrop-filter: blur(5px);  
+        width: 90vw;
+        box-sizing: border-box;
+        margin-left: auto;
+        margin-right: auto;
+      }
+       
+      .color-building-27
+      {
+        background-color: #CD5C5C !important;
+        border-left: 6px solid #CD5C5C !important;
+      }
+      .color-building-31
+      {
+        background-color: #BA55D3 !important;
+        border-left: 6px solid #BA55D3 !important;
+      }
+      .color-building-39
+      {
+        background-color: #fb8c00 !important;
+        border-left: 6px solid #fb8c00 !important;
+      }
+       
+      .ticket-card
+      {
+        width: 90vw;           
+        max-width: 100%;       
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 1em;
+        background-color: #ffffff !important;
+        border-top: none;
+        border-right: none;
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid px-0 d-flex flex-column align-items-center">
+      <h2 class="mb-4">Active Repairs</h2>
+      <div id="ticketList">Loading tickets...</div>
+    </div>
+
+    <script>
+      
+      var batchTimer;
+      var isRunning = false;
+      const pollAttemptsMax = 5;
+      const timeAfterLastCardButtonPressed = 60; 
+      const timerToCheckProcessStatus = 30 
+      const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
+
+      
+      window.onload = async function()
+      {
+        isRunning = true;
+        registerSW();
+        const container = document.getElementById("ticketList");
+        const cachedData = await getFromCache();
+        var buttons = [];
+        if(cachedData)
+        {
+          container.innerHTML = cachedData;
+          buttons = container.querySelectorAll("button");
+          buttons.forEach(button => button.disabled = true);
+        }
+        const dataToSend = {
+            "function": "getOpenTicketsHTML"
+        };
+        const callbacks = {
+          "onSuccess": async (openTicketsHTML) => {
+            
+            container.innerHTML = openTicketsHTML;
+            restorePendingState();
+            await saveInCache(openTicketsHTML);
+            isRunning = false;
+          },
+          "onFailure": () => {
+            console.error("Failed to load tickets");
+            buttons.forEach(button => button.disabled = false);
+            restorePendingState();
+            isRunning = false;
+          }
+        };
+        sendDataToBackend(dataToSend,callbacks);
+      }
+
+      
+      async function getFromCache()
+      {
+        try
+        {
+          const cache = await window.caches.open("v1");
+          const cachedCards = await cache.match(new Request("/cards"));
+          return cachedCards ? await cachedCards.text(): "";
+        }
+        catch(error)
+        {
+          console.log(error.message);
+          return false;
+        }
+      }
+
+      
+      async function saveInCache(data)
+      {
+        try
+        {
+          const cache = await window.caches.open("v1");
+          
+          await cache.put(
+            new Request("/cards"),
+            new Response(data)
+          );
+        }
+        catch(error)
+        {
+          console.log(error.message);
+        }
+      }
+
+      
+      async function sendDataToBackend(dataToSend,callbacks)
+      {
+        var url = urlGAS;
+  var options;
+  if(!Object.hasOwn(dataToSend,"argument"))
+  {
+    const params = new URLSearchParams(dataToSend);
+    url = urlGAS + "?" + params;
+    options = {
+      method: "GET"
+    };
+  }
+  else
+  {
+    options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({payload: JSON.stringify(dataToSend)})  
+    };
+  }
+  try
+  {
+    const responseJSON = await fetch(url,options);
+    const response = await responseJSON.json();
+    callbacks["onSuccess"](response);
+  }
+  catch
+  {
+    if(callbacks["onFailure"]) callbacks["onFailure"]();
+  }
+      }
+
+      
+      function completeTicket(thisButton)
+      {
+        
+        clearTimeout(batchTimer);
+        if(isRunning) return false;
+        isRunning = true;
+        
+        const thisCard = thisButton.closest(".card");
+        const thisTextArea = thisCard.querySelector("textarea");
+        thisTextArea.disabled = true;
+        
+        thisButton.innerText = "Syncing...";
+        thisButton.disabled = true;
+        
+        batchTimer = setTimeout(() => {
+          console.log("sending...");
+           
+          sendPendingTickets();
+        }, timeAfterLastCardButtonPressed * 1000);
+        const ticketCompleted = {
+          "databaseID": thisCard.id,
+          "note": thisTextArea.value
+        };
+        saveToLocalStorage([ticketCompleted]);
+        isRunning = false;
+      }
+
+      
+      function sendPendingTickets()
+      {
+        if(isRunning) return false;
+        const ticketsCompleted = getFromLocalStorage();
+        if(ticketsCompleted.length === 0) return false;
+        isRunning = true;
+        
+        const dataToSend = {
+            "function": "markTicketsDone",
+            "argument": ticketsCompleted
+        };
+        const callbacks = {
+          "onSuccess": (responseCode) => {
+            if(responseCode === 204)
+            {
+              confirmTickets(ticketsCompleted);
+            }
+            else
+            {
+              saveToLocalStorage(ticketsCompleted);
+              isRunning = false;
+            }
+          },
+          "onFailure": () => {
+            saveToLocalStorage(ticketsCompleted);
+            isRunning = false;
+          }
+        };
+        sendDataToBackend(dataToSend,callbacks);
+      }
+
+      function getFromLocalStorage()
+      {
+        const storageKey = "pendingTickets";
+        const storedData = JSON.parse(localStorage[storageKey] || "[]");
+        delete localStorage[storageKey];
+        return storedData;
+      }
+
+      function saveToLocalStorage(dataToAppend)
+      {
+        const storageKey = "pendingTickets";
+        const existingData = JSON.parse(localStorage[storageKey] || "[]");
+        localStorage[storageKey] = JSON.stringify(existingData.concat(dataToAppend));
+      }
+
+      function confirmTickets(ticketsCompleted = [])
+      {
+        
+        const ticketsToConfirm = ticketsCompleted.map(ticket => ticket["databaseID"]);
+        if(ticketsToConfirm.length === 0) return false;
+        
+        setTimeout(() => {
+          
+          var pollAttempts = 0;
+          const timerResetButtons = setInterval(() => {
+            const ticketsToConfirmSet = new Set(getFromLocalStorage());
+            const dataToSend = {
+              "function": "getDatabaseIDsConfirmed",
+              "argument": Array.from(ticketsToConfirmSet)
+            };
+            const callbacks = {
+              "onSuccess": async (databaseIDsDone) => {
+                 
+                pollAttempts++;
+                databaseIDsDone.forEach(databaseID => {
+                   
+                  ticketUpdateSuccessful(document.getElementById(databaseID));
+                  ticketsToConfirmSet.delete(databaseID);
+                });
+                if(ticketsToConfirmSet.size === 0)
+                {
+                   
+                  const container = document.getElementById("ticketList");
+                  await saveInCache(container.innerHTML);
+                  clearInterval(timerResetButtons);
+                  isRunning = false;
+                  return false;
+                }
+                saveToLocalStorage(Array.from(ticketsToConfirmSet));
+                if(pollAttempts >= pollAttemptsMax)
+                {
+                   
+                  clearInterval(timerResetButtons);
+                  isRunning = false;
+                  return false;
+                }
+              },
+              "onFailure": () => {
+                 
+                console.error("Failed to confirm tickets");
+                saveToLocalStorage(Array.from(ticketsToConfirmSet));
+                clearInterval(timerResetButtons);
+                isRunning = false;
+              }
+            };
+            sendDataToBackend(dataToSend,callbacks);
+          }, timerToCheckProcessStatus * 1000);
+        }, 2 * timerToCheckProcessStatus * 1000);
+        saveToLocalStorage(ticketsToConfirm);
+      }
+
+      
+      function ticketUpdateSuccessful(card)
+      {
+        
+        card.style.transition = "0.5s";
+        card.style.opacity = "0";
+        setTimeout(() => card.remove(), 500);
+      }
+
+      
+      window.onoffline = async function()
+      {}
+
+      
+      window.ononline = function()
+      {
+        sendPendingTickets();
+      }
+
+      
+      document.onvisibilitychange = function()
+      {
+        
+        if(document.visibilityState === "visible")
+        {
+           
+          sendPendingTickets();
+        }
+      }
+
+      
+      function restorePendingState()
+      {
+        const pendingTickets = getFromLocalStorage();
+        if(pendingTickets.length === 0) return false;
+        clearTimeout(batchTimer);
+        pendingTickets.forEach(ticket => {
+          const card = document.getElementById(ticket["databaseID"]);
+          
+          if(!card) return false;
+          const textarea = card.querySelector("textarea");
+          
+          textarea.value = ticket["note"];
+          textarea.disabled = true;
+          const button = card.querySelector("button");
+          button.innerText = "Syncing...";
+          button.disabled = true;
+        });
+        batchTimer = setTimeout(() => {
+          sendPendingTickets();
+        }, timeAfterLastCardButtonPressed * 1000);
+        saveToLocalStorage(pendingTickets);
+      }
+
+      
+      async function registerSW()
+      {
+        if("serviceWorker" in navigator)
+        {
+          try
+          {
+            const reg = await navigator.serviceWorker.register("./sw.js");
+            console.log('✅ Service Worker registered:', reg);
+          }
+          catch(err)
+          {
+            console.log('❌ Service Worker failed:', err);
+          }
+        }
+      };
+    </script>
+  </body>
+</html>
