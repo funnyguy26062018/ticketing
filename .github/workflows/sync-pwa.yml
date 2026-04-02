@@ -40,15 +40,6 @@ jobs:
             echo "$b64" | base64 --decode > "$filename"
           done
 
-      - name: Debug files.json
-        run: |
-          echo "=== File size ==="
-          wc -c files.json
-          echo "=== Top-level keys ==="
-          python3 -c "import json,sys; d=json.load(open('files.json')); print(list(d.keys()))"
-          echo "=== Content lengths per key ==="
-          python3 -c "import json,sys; d=json.load(open('files.json')); [print(k, len(str(v.get('content','')))) for k,v in d.items()]"
-
       - name: Flatten icon src in manifest
         run: |
           jq '.["manifest.json"].content |= (
@@ -58,43 +49,47 @@ jobs:
           )' files.json > files.cleaned.json
           mv files.cleaned.json files.json
 
-      - name: Debug files.json size
+      # 🔥 Extract and write all files via Python
+      - name: Write all files
         run: |
-          wc -c files.json
-          jq 'keys' files.json
+          python3 - <<'EOF'
+          import json, base64, os
 
-      # 🔥 Extract base64-encoded files (e.g. ticketing.py)
-      - name: Extract base64 file entries
-        run: |
-          jq -r 'keys[]' files.json > /tmp/keys.txt
-          while IFS= read -r key; do
-            path=$(jq -r --arg k "$key" '.[$k].path' files.json)
-            b64=$(jq -r --arg k "$key" '.[$k].content | fromjson | .base64 // empty' files.json 2>/dev/null)
-            if [ -z "$b64" ]; then continue; fi
-            clean_path=$(echo "$path" | sed 's|^/||')
-            echo "Writing (base64) → $clean_path"
-            mkdir -p "$(dirname "$clean_path")"
-            echo "$b64" | base64 --decode > "$clean_path"
-          done < /tmp/keys.txt
+          with open('files.json') as f:
+              data = json.load(f)
 
-      # 🔥 Write remaining text files
-      - name: Write files
-        run: |
-          jq -r 'keys[]' files.json > /tmp/keys.txt
-          while IFS= read -r key; do
-            path=$(jq -r --arg k "$key" '.[$k].path' files.json)
-            if [ -z "$path" ] || [ "$path" = "null" ]; then continue; fi
-            b64=$(jq -r --arg k "$key" '.[$k].content | fromjson | .base64 // empty' files.json 2>/dev/null)
-            if [ -n "$b64" ]; then continue; fi
-            content=$(jq -r --arg k "$key" '.[$k].content' files.json)
-            clean_path=$(echo "$path" | sed 's|^/||')
-            echo "Writing → $clean_path"
-            mkdir -p "$(dirname "$clean_path")"
-            printf "%s" "$content" > "$clean_path"
-          done < /tmp/keys.txt
+          print(f"Total keys: {len(data)}")
+
+          for key, entry in data.items():
+              path = entry.get('path', '')
+              content = entry.get('content', '')
+              if not path:
+                  continue
+
+              clean_path = path.lstrip('/')
+
+              # Try to parse content as JSON — if it has a base64 field, decode it
+              try:
+                  inner = json.loads(content)
+                  if isinstance(inner, dict) and 'base64' in inner:
+                      print(f"Writing (base64) → {clean_path}")
+                      os.makedirs(os.path.dirname(clean_path) or '.', exist_ok=True)
+                      with open(clean_path, 'wb') as f:
+                          f.write(base64.b64decode(inner['base64']))
+                      continue
+              except (json.JSONDecodeError, TypeError):
+                  pass
+
+              # Plain text file
+              print(f"Writing → {clean_path}")
+              os.makedirs(os.path.dirname(clean_path) or '.', exist_ok=True)
+              with open(clean_path, 'w', encoding='utf-8') as f:
+                  f.write(content)
+
+          EOF
 
       - name: Cleanup
-        run: rm -f files.json manifest.tmp.json /tmp/keys.txt
+        run: rm -f files.json manifest.tmp.json
       - name: Commit & push
         run: |
           git config user.name "github-actions"
