@@ -53,7 +53,6 @@ jobs:
       # 🔥 Extract base64-encoded files (e.g. ticketing.py)
       - name: Extract base64 file entries
         run: |
-          count=$(jq 'length' files.json)
           keys=$(jq -r 'keys[]' files.json)
           while IFS= read -r key; do
             path=$(jq -r --arg k "$key" '.[$k].path' files.json)
