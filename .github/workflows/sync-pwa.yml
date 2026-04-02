@@ -44,41 +44,38 @@ jobs:
       # 🔥 Extract base64-encoded files (e.g. ticketing.py)
       - name: Extract base64 file entries
         run: |
-          jq -c 'to_entries[]' files.json | while read -r entry; do
-            path=$(echo "$entry" | jq -r '.value.path')
-            content=$(echo "$entry" | jq -r '.value.content')
-
-            # Try to parse content as JSON — if it has a base64 field, handle it
+          count=$(jq 'length' files.json)
+          keys=$(jq -r 'keys[]' files.json)
+          while IFS= read -r key; do
+            path=$(jq -r --arg k "$key" '.[$k].path' files.json)
+            content=$(jq -r --arg k "$key" '.[$k].content' files.json)
             b64=$(echo "$content" | jq -r '.base64 // empty' 2>/dev/null)
             if [ -z "$b64" ]; then continue; fi
-
             clean_path=$(echo "$path" | sed 's|^/||')
             echo "Writing (base64) → $clean_path"
             mkdir -p "$(dirname "$clean_path")"
             echo "$b64" | base64 --decode > "$clean_path"
-          done
+          done <<< "$keys"
 
       # 🔥 Write remaining text files
       - name: Write files
         run: |
-          jq -c 'to_entries[]' files.json | while read -r entry; do
-            path=$(echo "$entry" | jq -r '.value.path')
-            content=$(echo "$entry" | jq -r '.value.content')
-
+          keys=$(jq -r 'keys[]' files.json)
+          while IFS= read -r key; do
+            path=$(jq -r --arg k "$key" '.[$k].path' files.json)
+            content=$(jq -r --arg k "$key" '.[$k].content' files.json)
             if [ -z "$path" ] || [ "$path" = "null" ]; then continue; fi
-
-            # Skip base64 object entries — already handled above
             b64=$(echo "$content" | jq -r '.base64 // empty' 2>/dev/null)
             if [ -n "$b64" ]; then continue; fi
-
             clean_path=$(echo "$path" | sed 's|^/||')
             echo "Writing → $clean_path"
             mkdir -p "$(dirname "$clean_path")"
             printf "%s" "$content" > "$clean_path"
-          done
-
+          done <<< "$keys"
+          
       - name: Cleanup
         run: rm -f files.json manifest.tmp.json
+
       - name: Commit & push
         run: |
           git config user.name "github-actions"
