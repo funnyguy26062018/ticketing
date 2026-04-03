@@ -108,7 +108,7 @@
             isRunning = false;
           },
           "onFailure": () => {
-            console.error("Failed to load tickets");
+            
             buttons.forEach(button => button.disabled = false);
             restorePendingState();
             isRunning = false;
