@@ -29,7 +29,7 @@ jobs:
       # 🔥 Download icons
       - name: Download icons
         run: |
-          manifest=$(jq -r '.["manifest.json"].content' files.json)
+          manifest=$(jq -r '.["manifest"].content' files.json)
           echo "$manifest" > manifest.tmp.json
           icon_count=$(jq '.icons | length' manifest.tmp.json)
           for ((i=0; i<icon_count; i++)); do
@@ -42,7 +42,7 @@ jobs:
 
       - name: Flatten icon src in manifest
         run: |
-          jq '.["manifest.json"].content |= (
+          jq '.["manifest"].content |= (
             fromjson
             | .icons |= map(.src = .src.fileName)
             | tojson
