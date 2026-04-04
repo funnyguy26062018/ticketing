@@ -89,12 +89,13 @@
         registerSW();
         const container = document.getElementById("ticketList");
         const cachedData = await getFromCache();
-        var buttons = [];
+        var cards = [];
         if(cachedData)
         {
           container.innerHTML = cachedData;
-          buttons = container.querySelectorAll("button");
-          buttons.forEach(button => button.disabled = true);
+           
+          cards = container.querySelectorAll(".card");
+          setCardsDisabled(cards,true);
         }
         const dataToSend = {
             "function": "getOpenTicketsHTML"
@@ -109,12 +110,25 @@
           },
           "onFailure": () => {
             
-            buttons.forEach(button => button.disabled = false);
+             
+            setCardsDisabled(cards,false);
+            
             restorePendingState();
             isRunning = false;
           }
         };
         sendDataToBackend(dataToSend,callbacks);
+      }
+
+      
+      function setCardsDisabled(cards,state)
+      {
+        cards.forEach(card => {
+          const textarea = card.querySelector("textarea");
+          const button = card.querySelector("button");
+          if(textarea) textarea.disabled = state;
+          if(button) button.disabled = state;
+        });
       }
 
       
@@ -194,12 +208,15 @@
         if(isRunning) return false;
         isRunning = true;
         
-        const thisCard = thisButton.closest(".card");
-        const thisTextArea = thisCard.querySelector("textarea");
-        thisTextArea.disabled = true;
-        
         thisButton.innerText = "Syncing...";
-        thisButton.disabled = true;
+        const thisCard = thisButton.closest(".card");
+        if(thisCard) setCardsDisabled([thisCard],true);
+        
+        
+        
+        
+        
+        
         
         batchTimer = setTimeout(() => {
           console.log("sending...");
