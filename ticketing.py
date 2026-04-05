@@ -179,7 +179,7 @@ def getMyTickets(staff_ID,knownDatabaseIDs):
     return tickets
 
 def getTicketDetails(ticket_ID_database):
-    ticket_ID_database = "73241"
+    #ticket_ID_database = "73241"
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
     ticketDetails = {}
     containerNotes = html.find(id="ticketnotescontainerdiv")
