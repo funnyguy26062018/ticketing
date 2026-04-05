@@ -109,7 +109,7 @@
             isRunning = false;
           },
           "onFailure": () => {
-            
+            console.error("Failed to load tickets");
              
             setCardsDisabled(cards,false);
             
@@ -206,28 +206,27 @@
         
         clearTimeout(batchTimer);
         if(isRunning) return false;
+        const thisCard = thisButton.closest(".card");
+        if(!thisCard) return false;
         isRunning = true;
         
+        setCardsDisabled([thisCard],true);
         thisButton.innerText = "Syncing...";
-        const thisCard = thisButton.closest(".card");
-        if(thisCard) setCardsDisabled([thisCard],true);
         
+        const thisTextArea = thisCard.querySelector("textarea");
         
+        const ticketCompleted = {
+          "databaseID": thisCard.id,
+          "note": thisTextArea.value
+        };
         
-        
-        
-        
+        saveToLocalStorage([ticketCompleted]);
         
         batchTimer = setTimeout(() => {
           console.log("sending...");
            
           sendPendingTickets();
         }, timeAfterLastCardButtonPressed * 1000);
-        const ticketCompleted = {
-          "databaseID": thisCard.id,
-          "note": thisTextArea.value
-        };
-        saveToLocalStorage([ticketCompleted]);
         isRunning = false;
       }
 
@@ -283,6 +282,7 @@
         
         const ticketsToConfirm = ticketsCompleted.map(ticket => ticket["databaseID"]);
         if(ticketsToConfirm.length === 0) return false;
+        saveToLocalStorage(ticketsToConfirm);
         
         setTimeout(() => {
           
@@ -331,7 +331,7 @@
             sendDataToBackend(dataToSend,callbacks);
           }, timerToCheckProcessStatus * 1000);
         }, 2 * timerToCheckProcessStatus * 1000);
-        saveToLocalStorage(ticketsToConfirm);
+        
       }
 
       
@@ -382,10 +382,11 @@
           button.innerText = "Syncing...";
           button.disabled = true;
         });
+        saveToLocalStorage(pendingTickets);
         batchTimer = setTimeout(() => {
           sendPendingTickets();
         }, timeAfterLastCardButtonPressed * 1000);
-        saveToLocalStorage(pendingTickets);
+        
       }
 
       
