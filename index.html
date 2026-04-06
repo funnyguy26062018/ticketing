@@ -205,13 +205,11 @@
       {
         
         clearTimeout(batchTimer);
-        if(isRunning) return false;
         const thisCard = thisButton.closest(".card");
         if(!thisCard) return false;
-        isRunning = true;
         
         setCardsDisabled([thisCard],true);
-        thisButton.innerText = "Syncing...";
+        thisButton.innerText = "Syncing ...";
         
         const thisTextArea = thisCard.querySelector("textarea");
         
@@ -227,7 +225,6 @@
            
           sendPendingTickets();
         }, timeAfterLastCardButtonPressed * 1000);
-        isRunning = false;
       }
 
       
@@ -335,12 +332,29 @@
       }
 
       
+      
       function ticketUpdateSuccessful(card)
       {
+        const wrapper = document.createElement("div");
+        const height = card.getBoundingClientRect().height;
+        wrapper.style.overflow = "hidden";
+        wrapper.style.height = height + "px";
+        wrapper.style.transition = "height 0.55s cubic-bezier(0.4, 0, 0.2, 1)";
+        wrapper.style.willChange = "height";
+        card.style.willChange = "opacity";
+        card.parentNode.insertBefore(wrapper, card);
+        wrapper.appendChild(card);
         
-        card.style.transition = "0.5s";
+        wrapper.getBoundingClientRect();
+        
+        card.style.transition = "opacity 0.45s ease";
         card.style.opacity = "0";
-        setTimeout(() => card.remove(), 500);
+        setTimeout(() => wrapper.style.height = "0", 120);
+        setTimeout(() => wrapper.remove(), 500);
+        
+        
+        
+        
       }
 
       
