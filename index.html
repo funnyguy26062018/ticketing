@@ -201,24 +201,32 @@
       }
 
       
-      function completeTicket(thisButton)
+      function completeTicket(thisButton = null)
       {
         
         clearTimeout(batchTimer);
-        const thisCard = thisButton.closest(".card");
-        if(!thisCard) return false;
         
-        setCardsDisabled([thisCard],true);
-        thisButton.innerText = "Syncing ...";
-        
-        const thisTextArea = thisCard.querySelector("textarea");
-        
-        const ticketCompleted = {
-          "databaseID": thisCard.id,
-          "note": thisTextArea.value
-        };
-        
-        saveToLocalStorage([ticketCompleted]);
+        if(thisButton)
+        {
+           
+          const thisCard = thisButton.closest(".card");
+          if(thisCard)
+          {
+             
+            
+            setCardsDisabled([thisCard],true);
+            thisButton.innerText = "Syncing ...";
+            
+            const thisTextArea = thisCard.querySelector("textarea");
+            
+            const ticketCompleted = {
+              "databaseID": thisCard.id,
+              "note": thisTextArea.value
+            };
+            
+            saveToLocalStorage([ticketCompleted]);
+          }
+        }
         
         batchTimer = setTimeout(() => {
           console.log("sending...");
