@@ -168,8 +168,8 @@ def getMyTickets(staff_ID,knownDatabaseIDs):
             index_name = header_titles["Name"]
             ticket_name = ticket_columns[index_name].text
             ticket["date"] = ticket_date
-            ticket["database_ID"] = database_ID
-            ticket["ticket-ID"] = ticket_ID
+            ticket["databaseID"] = database_ID
+            ticket["ticketID"] = ticket_ID
             ticket["status"] = ticket_status.strip()
             ticket["owner"] = ticket_owner
             ticket["subject"] = ticket_subject.strip()
@@ -286,9 +286,9 @@ def updateTickets(tickets):
         print(ticket["databaseID"] + ": " + str(status_code))
 
 def addTicketNote(ticket):
-    ticket_ID_database = ticket["databaseID"]
+    databaseID = ticket["databaseID"]
     # Navigates to the ticket details page
-    html = getParsedHTML(session, NOTE_URL + ticket_ID_database)
+    html = getParsedHTML(session, NOTE_URL + databaseID)
     # Gets the submission URL
     action_url = html.find("form", id="ticketaddnotesform")["action"]
     # Gets the hidden CSRF token
@@ -306,7 +306,7 @@ def addTicketNote(ticket):
     # Constructs the header
     headers = {
         "X-Requested-With": "XMLHttpRequest",
-        "Referer": TICKET_VIEW_URL + ticket_ID_database
+        "Referer": TICKET_VIEW_URL + databaseID
     }
     # Post request to update ticket
     response = session.post(action_url, data=payload, headers=headers)
@@ -314,9 +314,9 @@ def addTicketNote(ticket):
 
 # Updates the ticket status
 def updateTicket(ticket):
-    ticket_ID_database = ticket["databaseID"]
+    databaseID = ticket["databaseID"]
     # Navigates to the ticket details page
-    html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
+    html = getParsedHTML(session, TICKET_VIEW_URL + databaseID)
     # Gets the submission URL
     action_url = html.find("form", id="View_Ticketform")["action"]
     # Gets the hidden CSRF token
@@ -333,7 +333,7 @@ def updateTicket(ticket):
     # Constructs the header
     headers = {
         "X-Requested-With": "XMLHttpRequest",
-        "Referer": TICKET_VIEW_URL + ticket_ID_database
+        "Referer": TICKET_VIEW_URL + databaseID
     }
     # Post request to update ticket
     response = session.post(action_url, data=payload, headers=headers)
@@ -375,6 +375,7 @@ if __name__ == "__main__":
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login(dataReceived["credentials"])
+    #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Update tickets
     updateTickets(dataReceived["ticketsCompleted"])
     # Data to send to Google Sheets
