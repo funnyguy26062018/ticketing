@@ -378,6 +378,8 @@ if __name__ == "__main__":
     #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     # Update tickets
     updateTickets(dataReceived["ticketsCompleted"])
+    print("RUN STARTED")
+    print("TICKETS:", dataReceived.get("ticketsCompleted"))
     # Data to send to Google Sheets
     dataToSend = {}
     # Scrape ticket overview
