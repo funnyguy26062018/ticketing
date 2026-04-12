@@ -65,6 +65,24 @@
         border-right: none;
         border-bottom: none;
       }
+       
+       
+        
+        
+      
+       
+       
+      
+      .toastOptions
+      {
+        data-bs-animation: true;
+        transition-duration: 1.5s;
+      }
+      body.modal-open
+      {
+        overflow: hidden;
+        padding-right: 0 !important;
+      }
     </style>
   </head>
   <body>
@@ -72,20 +90,49 @@
       <h2 class="mb-4">Active Repairs</h2>
       <div id="ticketList">Loading tickets...</div>
     </div>
+    
+    <div class="toast-container position-fixed bottom-50 start-50 translate-middle-x">
+      <div class="toast text-bg-dark toastOptions" id="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+        <div class="toast-header">
+          <strong class="me-auto toast-header-text">
+            
+          </strong>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body toast-body-text">
+          
+        </div>
+      </div>
+    </div>
+    
 
     <script>
       
       var batchTimer;
-      var isRunning = false;
+      var sendPendingTicketsIsRunning = false;
+      var confirmTicketsIsRunning = false;
       const pollAttemptsMax = 5;
       const timeAfterLastCardButtonPressed = 60; 
       const timerToCheckProcessStatus = 30 
       const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
+      
+      const toastElement = document.getElementById("toast");
+      
+      let isToastActive = false;
+      
+      const toastQueue = [];
+      
+    const toastTextSuccess = "You have successfully submitted your data!";
+    const toastTextUploadingData = "Your data is being uploaded! Please wait ...";
+    const toastTextMissingData = "You did not fill out all necessary fields!";
+    const toastTextFailure = "The data couldn't be sent!";
+    const toastTextIncorrectFileType = "The file type is incorrect!";
+
 
       
       window.onload = async function()
       {
-        isRunning = true;
+        sendPendingTicketsIsRunning = true;
         registerSW();
         const container = document.getElementById("ticketList");
         const cachedData = await getFromCache();
@@ -106,7 +153,7 @@
             container.innerHTML = openTicketsHTML;
             restorePendingState();
             await saveInCache(openTicketsHTML);
-            isRunning = false;
+            sendPendingTicketsIsRunning = false;
           },
           "onFailure": () => {
             console.error("Failed to load tickets");
@@ -114,7 +161,7 @@
             setCardsDisabled(cards,false);
             
             restorePendingState();
-            isRunning = false;
+            sendPendingTicketsIsRunning = false;
           }
         };
         sendDataToBackend(dataToSend,callbacks);
@@ -224,113 +271,150 @@
               "note": thisTextArea.value
             };
             
-            saveToLocalStorage([ticketCompleted]);
+            saveToLocalStorage("pendingTickets",[ticketCompleted]);
           }
-        }
-        
-        batchTimer = setTimeout(() => {
-          console.log("sending...");
-           
+          
           sendPendingTickets();
-        }, timeAfterLastCardButtonPressed * 1000);
+        }
       }
 
       
       function sendPendingTickets()
       {
-        if(isRunning) return false;
-        const ticketsCompleted = getFromLocalStorage();
-        if(ticketsCompleted.length === 0) return false;
-        isRunning = true;
         
-        const dataToSend = {
-            "function": "markTicketsDone",
-            "argument": ticketsCompleted
-        };
-        const callbacks = {
-          "onSuccess": (responseCode) => {
-            if(responseCode === 204)
-            {
-              confirmTickets(ticketsCompleted);
+        
+        
+        batchTimer = setTimeout(() => {
+          if(sendPendingTicketsIsRunning) return false;
+          const ticketsCompleted = getFromLocalStorage("pendingTickets");
+          if(ticketsCompleted.length === 0) return false;
+          sendPendingTicketsIsRunning = true;
+          console.log("sending...");
+           
+          
+          var a = new Date().getTime();
+          const dataToSend = {
+              "function": "markTicketsDone",
+              "argument": ticketsCompleted
+          };
+          const callbacks = {
+            "onSuccess": (responseCode) => {
+               
+              if(responseCode === 204)
+              {
+                 
+                var b = new Date().getTime();
+                console.log("time elapsed: ",b-a);
+                
+                saveToLocalStorage("ticketsToConfirm",ticketsCompleted);
+                removeFromLocalStorage("pendingTickets",ticketsCompleted);
+                
+                confirmTickets();
+                showToast("text-bg-success", "Success", "Tickets have been sent to GitHub!");
+              }
+              else
+              {
+                 
+                showToast("text-bg-danger", "Failure", "GitHub temporarily anavailable!");
+              }
+              sendPendingTicketsIsRunning = false;
+            },
+            "onFailure": (response) => {
+              
+              
+              showToast("text-bg-danger", "Failure", response.message);
+              sendPendingTicketsIsRunning = false;
             }
-            else
-            {
-              saveToLocalStorage(ticketsCompleted);
-              isRunning = false;
-            }
-          },
-          "onFailure": () => {
-            saveToLocalStorage(ticketsCompleted);
-            isRunning = false;
-          }
-        };
-        sendDataToBackend(dataToSend,callbacks);
+          };
+          sendDataToBackend(dataToSend,callbacks);
+        }, timeAfterLastCardButtonPressed * 1000);
       }
 
-      function getFromLocalStorage()
+      function getFromLocalStorage(storageKey)
       {
-        const storageKey = "pendingTickets";
         const storedData = JSON.parse(localStorage[storageKey] || "[]");
-        delete localStorage[storageKey];
+        
         return storedData;
       }
 
-      function saveToLocalStorage(dataToAppend)
+      function saveToLocalStorage(storageKey,dataToAppend)
       {
-        const storageKey = "pendingTickets";
         const existingData = JSON.parse(localStorage[storageKey] || "[]");
         localStorage[storageKey] = JSON.stringify(existingData.concat(dataToAppend));
       }
 
-      function confirmTickets(ticketsCompleted = [])
+      function removeFromLocalStorage(storageKey,ticketsToRemove)
+      {
+        const existingData = JSON.parse(localStorage[storageKey] || "[]");
+        const databaseIDsToRemove = ticketsToRemove.map(ticketToRemove => ticketToRemove["databaseID"]);
+        const databaseIDsToRemoveSet = new Set(databaseIDsToRemove);
+        const newData = existingData.filter(ticket => !databaseIDsToRemoveSet.has(ticket["databaseID"]));
+        localStorage[storageKey] = JSON.stringify(newData);
+      }
+
+      function confirmTickets()
       {
         
-        const ticketsToConfirm = ticketsCompleted.map(ticket => ticket["databaseID"]);
-        if(ticketsToConfirm.length === 0) return false;
-        saveToLocalStorage(ticketsToConfirm);
+        
+        
+        
+        
+        
         
         setTimeout(() => {
+          if(confirmTicketsIsRunning) return false;
+          confirmTicketsIsRunning = true;
+          showToast("text-bg-success", "Success", "Polling has started!");
           
           var pollAttempts = 0;
           const timerResetButtons = setInterval(() => {
-            const ticketsToConfirmSet = new Set(getFromLocalStorage());
+            const ticketsToConfirm = getFromLocalStorage("ticketsToConfirm");
+            if(ticketsToConfirm.length === 0) return false;
+            
             const dataToSend = {
-              "function": "getDatabaseIDsConfirmed",
-              "argument": Array.from(ticketsToConfirmSet)
+              "function": "getTicketsConfirmed",
+              "argument": ticketsToConfirm
             };
             const callbacks = {
-              "onSuccess": async (databaseIDsDone) => {
+              "onSuccess": async (ticketsConfirmed) => {
                  
                 pollAttempts++;
-                databaseIDsDone.forEach(databaseID => {
+                removeFromLocalStorage("ticketsToConfirm",ticketsConfirmed);
+                ticketsConfirmed.forEach(ticket => {
                    
-                  ticketUpdateSuccessful(document.getElementById(databaseID));
-                  ticketsToConfirmSet.delete(databaseID);
+                  ticketUpdateSuccessful(document.getElementById(ticket["databaseID"]));
+                  
                 });
-                if(ticketsToConfirmSet.size === 0)
+                const ticketsToRemove = getFromLocalStorage("ticketsToConfirm");
+                if(ticketsToRemove.length === 0)
                 {
                    
                   const container = document.getElementById("ticketList");
                   await saveInCache(container.innerHTML);
                   clearInterval(timerResetButtons);
-                  isRunning = false;
+                  showToast("text-bg-success", "Success", "Polling has ended successfully!");
+                  confirmTicketsIsRunning = false;
                   return false;
                 }
-                saveToLocalStorage(Array.from(ticketsToConfirmSet));
+                
                 if(pollAttempts >= pollAttemptsMax)
                 {
                    
+                  
+                  
                   clearInterval(timerResetButtons);
-                  isRunning = false;
+                  confirmTicketsIsRunning = false;
                   return false;
                 }
               },
               "onFailure": () => {
                  
                 console.error("Failed to confirm tickets");
-                saveToLocalStorage(Array.from(ticketsToConfirmSet));
+                
+                
+                
                 clearInterval(timerResetButtons);
-                isRunning = false;
+                confirmTicketsIsRunning = false;
               }
             };
             sendDataToBackend(dataToSend,callbacks);
@@ -343,6 +427,7 @@
       
       function ticketUpdateSuccessful(card)
       {
+        if(!card) return false;
         const wrapper = document.createElement("div");
         const height = card.getBoundingClientRect().height;
         wrapper.style.overflow = "hidden";
@@ -389,26 +474,69 @@
       
       function restorePendingState()
       {
-        const pendingTickets = getFromLocalStorage();
-        if(pendingTickets.length === 0) return false;
-        clearTimeout(batchTimer);
-        pendingTickets.forEach(ticket => {
-          const card = document.getElementById(ticket["databaseID"]);
-          
-          if(!card) return false;
-          const textarea = card.querySelector("textarea");
-          
-          textarea.value = ticket["note"];
-          textarea.disabled = true;
-          const button = card.querySelector("button");
-          button.innerText = "Syncing...";
-          button.disabled = true;
-        });
-        saveToLocalStorage(pendingTickets);
-        batchTimer = setTimeout(() => {
-          sendPendingTickets();
-        }, timeAfterLastCardButtonPressed * 1000);
         
+        clearTimeout(batchTimer);
+        
+        const disableCards = (tickets) => {
+          tickets.forEach(ticket => {
+            const card = document.getElementById(ticket["databaseID"]);
+            
+            if(!card) return false;
+            const textarea = card.querySelector("textarea");
+            
+            textarea.value = ticket["note"];
+            textarea.disabled = true;
+            const button = card.querySelector("button");
+            button.innerText = "Syncing...";
+            button.disabled = true;
+          });
+        }
+        const pendingTickets = getFromLocalStorage("pendingTickets");
+        const ticketsToConfirm = getFromLocalStorage("ticketsToConfirm");
+        disableCards(pendingTickets.concat(ticketsToConfirm));
+        if(pendingTickets.length > 0) sendPendingTickets();
+        else if(ticketsToConfirm.length > 0) confirmTickets();
+      }
+
+      
+      function showToast(classToAdd,textHeader,textBody)
+      {
+        
+        const toast = bootstrap.Toast.getOrCreateInstance(toastElement);
+        if(!isToastActive)
+        {
+          isToastActive = true;
+          
+          const toastHeader = toastElement.querySelector(".toast-header");
+          const colorClasses = ["text-bg-primary", "text-bg-success", "text-bg-danger", "text-bg-warning", "text-bg-info"];
+          toastHeader.classList.remove(...colorClasses);
+          
+          toastHeader.classList.add(classToAdd);
+          
+          toastElement.querySelector(".toast-header-text").textContent = textHeader;
+          toastElement.querySelector(".toast-body-text").textContent = textBody;
+          
+          toastElement.addEventListener("hidden.bs.toast", onToastHidden, {once: true});
+          toast.show();
+        }
+        else
+        {
+          
+          toastQueue.push({classToAdd,textHeader,textBody});
+        }
+        return toast;
+      }
+
+      
+      function onToastHidden()
+      {
+        isToastActive = false;
+        
+        if(toastQueue.length > 0)
+        {
+          const nextToast = toastQueue.shift();
+          showToast(nextToast.classToAdd, nextToast.textHeader, nextToast.textBody);
+        }
       }
 
       
