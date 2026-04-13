@@ -284,10 +284,12 @@
           const ticketsCompleted = getFromLocalStorage("pendingTickets");
           if(ticketsCompleted.length === 0) return false;
           sendPendingTicketsIsRunning = true;
-          console.log("sending...");
+          showToast("text-bg-success", "Success", "Tickets are about to be sent to the server!");
            
+          console.log("sending...");
           
-          var a = new Date().getTime();
+          const startingTime = new Date().getTime();
+          
           const dataToSend = {
               "function": "markTicketsDone",
               "argument": ticketsCompleted
@@ -298,17 +300,20 @@
               if(responseCode === 204)
               {
                  
-                var b = new Date().getTime();
-                console.log("time elapsed: ",b-a);
+                
+                const endingTime = new Date().getTime();
+                
+                const duration = (endingTime - startingTime) / 1000;
+                console.log("time elapsed: ",endingTime-startingTime);
                 saveToLocalStorage("ticketsToConfirm",ticketsCompleted);
                 removeFromLocalStorage("pendingTickets",ticketsCompleted);
                 confirmTickets();
-                showToast("text-bg-success", "Success", "Tickets have been sent to GitHub!");
+                showToast("text-bg-success", "Success", "The tickets have been sent to the server within " + duration + " seconds!");
               }
               else
               {
                  
-                showToast("text-bg-danger", "Failure", "GitHub temporarily anavailable!");
+                showToast("text-bg-danger", "Failure", "The GitHub server is temporarily anavailable!");
               }
               sendPendingTicketsIsRunning = false;
             },
@@ -385,13 +390,15 @@
                 {
                    
                   clearInterval(timerResetButtons);
+                  showToast("text-bg-danger", "Failure", "Some tickets haven't been confirmed by the time the maximum number of polling attempts is reached!");
                   confirmTicketsIsRunning = false;
                   return false;
                 }
               },
-              "onFailure": () => {
+              "onFailure": (response) => {
                  
-                console.error("Failed to confirm tickets");
+                console.error(response.message);
+                showToast("text-bg-danger", "Failure", "Failed to confirm tickets");
                 clearInterval(timerResetButtons);
                 confirmTicketsIsRunning = false;
               }
