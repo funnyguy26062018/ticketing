@@ -232,7 +232,7 @@ def getTableData(table):
             ticketDetails["regardingRoom"] = value
         #elif field == "Betrifft":
         elif isIncluded(field, ["Betrifft"], ["Zimmer"]):
-            ticketDetails["type"] = value
+            ticketDetails["typeDamage"] = value
         #elif field == "Beschreibung":
         elif isIncluded(field, ["Beschreibung"]):
             ticketDetails["description"] = value
