@@ -267,6 +267,7 @@
             };
             
             saveToLocalStorage("pendingTickets",[ticketCompleted]);
+            showToast("text-bg-success", "Success", "The ticket has been saved locally!");
           }
           
           sendPendingTickets();
@@ -284,7 +285,7 @@
           const ticketsCompleted = getFromLocalStorage("pendingTickets");
           if(ticketsCompleted.length === 0) return false;
           sendPendingTicketsIsRunning = true;
-          showToast("text-bg-success", "Success", "Tickets are about to be sent to the server!");
+          showToast("text-bg-success", "Success", "The tickets are about to be sent to the server!");
            
           console.log("sending...");
           
@@ -355,7 +356,7 @@
         setTimeout(() => {
           if(confirmTicketsIsRunning) return false;
           confirmTicketsIsRunning = true;
-          showToast("text-bg-success", "Success", "Polling has started!");
+          showToast("text-bg-success", "Success", "The polling has started!");
           
           var pollAttempts = 0;
           const timerResetButtons = setInterval(() => {
