@@ -244,7 +244,7 @@ def getTableData(table):
             ticketDetails["salutation"] = value
         #elif field == "Nachname, Vorname":
         elif isIncluded(field, ["Nachname", "Vorname"]):
-            ticketDetails["firstLastName"] = value
+            ticketDetails["lastFirstName"] = value
         #elif field == "Wohnanlage":
         elif isIncluded(field, ["Wohnanlage"]):
             ticketDetails["building"] = value
