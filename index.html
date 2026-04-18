@@ -150,8 +150,9 @@
             await saveInCache(openTicketsHTML);
             sendPendingTicketsIsRunning = false;
           },
-          "onFailure": () => {
+          "onFailure": (error) => {
             console.error("Failed to load tickets");
+            console.log(error);
              
             setCardsDisabled(cards,false);
             
