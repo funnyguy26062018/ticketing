@@ -109,7 +109,9 @@ def getDashboardStatistics():
             element_name = element.find(class_="dashboardprogresstitle")
             element_amount = element.find(class_="dashboardprogresscount")
             name = element_name.text.strip() or ""
-            amount = int(element_amount.text.strip()) if element_amount and element_amount.text.strip().isdigit() else 0
+            amount_str = element_amount.text.strip().replace(",", "") if element_amount else ""
+            amount = int(amount_str) if amount_str.isdigit() else 0
+            #amount = int(element_amount.text.strip()) if element_amount and element_amount.text.strip().isdigit() else 0
             #if "STWHD.FM" in name: amount_total = amount
             #if "Sebastian" in name and "Linn" in name: amount_person = amount
             ticketsSection[name] = amount
@@ -244,7 +246,7 @@ def getTableData(table):
             ticketDetails["salutation"] = value
         #elif field == "Nachname, Vorname":
         elif isIncluded(field, ["Nachname", "Vorname"]):
-            ticketDetails["firstLastName"] = value
+            ticketDetails["lastFirstName"] = value
         #elif field == "Wohnanlage":
         elif isIncluded(field, ["Wohnanlage"]):
             ticketDetails["building"] = value
@@ -375,7 +377,9 @@ if __name__ == "__main__":
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
     # Login to website
     session = login(dataReceived["credentials"])
-    #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
+    staff_IDs2 = dataReceived["staffIDs"]
+    print("staffIDs:")
+    print(staff_IDs2)
     # Update tickets
     updateTickets(dataReceived["ticketsCompleted"])
     # Data to send to Google Sheets
