@@ -67,10 +67,61 @@
         border-bottom: none;
       }
        
+      .ticket-type-watermark
+      {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 8rem;
+        opacity: 0.06;
+        z-index: 0;
+        pointer-events: none;
+        transition: all 0.5s ease;
+      }
+
+      .ticket-card:hover .ticket-type-watermark
+      {
+        opacity: 0.12;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+
+       
+      .watermark-electrical
+      {
+        color: #ff9800;
+      }
+      .watermark-plumbing
+      {
+        color: #2196F3;
+      }
+      .watermark-hvac
+      {
+        color: #00BCD4;
+      }
+      .watermark-structural
+      {
+        color: #795548;
+      }
+      .watermark-kitchen
+      {
+        color: #FF6B35;
+      }
+      .watermark-pest
+      {
+        color: #8BC34A;
+      }
+      .watermark-inventory
+      {
+        color: #9C27B0;
+      }
+       
+       
        
         
         
       
+       
        
        
       
