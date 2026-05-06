@@ -185,7 +185,8 @@
       var confirmTicketsIsRunning = false;
       const pollAttemptsMax = 5;
       const timeAfterLastCardButtonPressed = 60; 
-      const timerToCheckProcessStatus = 30 
+      const timerToCheckProcessStatus = 30; 
+      const timeToPassBeforeStarredNotesAreSaved = 3; 
       const urlGAS = "https://script.google.com/macros/s/AKfycbzfiG_GjLQ0WFQZLJcq8fs2yfXKB26p3KGRcMh0HEIb3dYJoqYR662XVqScbEvdzJYb/exec";
       
       const toastElement = document.getElementById("toast");
@@ -321,35 +322,52 @@
       }
 
       
-      function completeTicket(thisButton = null)
+      function completeTicket(thisButton)
       {
         
         clearTimeout(batchTimer);
-        
-        if(thisButton)
+         
+        if(!thisButton) return;
+        const thisCard = thisButton.closest(".card");
+        if(thisCard)
         {
            
-          const thisCard = thisButton.closest(".card");
-          if(thisCard)
-          {
-             
-            
-            setCardsDisabled([thisCard],true);
-            thisButton.innerText = "Syncing ...";
-            
-            const thisTextArea = thisCard.querySelector("textarea");
-            
-            const ticketCompleted = {
-              "databaseID": thisCard.id,
-              "note": thisTextArea.value
-            };
-            
-            saveToLocalStorage("pendingTickets",[ticketCompleted]);
-            showToast("text-bg-success", "Success", "The ticket has been saved locally!");
-          }
           
-          sendPendingTickets();
+          setCardsDisabled([thisCard],true);
+          thisButton.innerText = "Syncing ...";
+          
+          const thisTextArea = thisCard.querySelector("textarea");
+          
+          const ticketCompleted = {
+            "databaseID": thisCard.id,
+            "note": thisTextArea.value
+          };
+          
+          saveToLocalStorage("pendingTickets",[ticketCompleted]);
+          showToast("text-bg-success", "Success", "The ticket has been saved locally!");
         }
+        
+        sendPendingTickets();
+      }
+
+      
+      function onNoteInput()
+      {
+        clearTimeout(batchTimer);
+        batchTimer = setTimeout(() => {
+          const thisCard = document.activeElement.closest(".card");
+          if(!thisCard) return;
+          if(thisCard.classList.contains("flagged"))
+          {
+            const flaggedTickets = getFromLocalStorage("flaggedTickets");
+            const entry = flaggedTickets.find(ticket => ticket["databaseID"] === thisCard.id);
+            if(entry)
+            {
+              entry["note"] = thisCard.querySelector("textarea").value;
+              localStorage["flaggedTickets"] = JSON.stringify(flaggedTickets);
+            }
+          }
+        }, timeToPassBeforeStarredNotesAreSaved * 1000);
       }
 
       
@@ -619,7 +637,8 @@
           button.classList.add("active");
           button.title = "Remove flag";
           card.classList.add("flagged");
-          setTimeout(() => moveFlaggedCards([card]), 1 * 1000);
+          
+          setTimeout(() => moveFlaggedCards([card]), 500);
         }
       }
 
