@@ -190,8 +190,8 @@ def getTicketDetails(ticket_ID_database):
         for bubble in bubbles:
             blockquote = bubble.find("blockquote")
             timestamp = bubble.find_next_sibling("cite")
-            timestamp2 = timestamp.text.strip()
-            print("timestamp direct: " + str(timestamp2))
+            #timestamp2 = timestamp.text.strip()
+            #print("timestamp direct: " + str(timestamp2))
             if timestamp:
                 timestamp = timestamp.find("strong")
                 if blockquote and timestamp:
