@@ -186,10 +186,10 @@ def getTicketDetails(ticket_ID_database):
     ticketDetails = {"notes": []}
     containerNotes = html.find(id="ticketnotescontainerdiv")
     if containerNotes:
-        bubbles = containerNotes.find_all("bubble")
+        bubbles = containerNotes.find_all(class_="bubble")
         for bubble in bubbles:
             blockquote = bubble.find("blockquote")
-            timestamp = bubble.find("cite")
+            timestamp = bubble.find_next_sibling("cite")
             timestamp2 = timestamp.text.strip()
             print("timestamp direct: " + str(timestamp2))
             if timestamp:
