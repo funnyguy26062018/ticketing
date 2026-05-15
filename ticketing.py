@@ -193,6 +193,7 @@ def getTicketDetails(ticket_ID_database):
             #timestamp2 = timestamp.text.strip()
             #print("timestamp direct: " + str(timestamp2))
             if timestamp:
+                print("timestamp direct: " + timestamp.text.strip())
                 timestamp = timestamp.find("strong")
                 if blockquote and timestamp:
                     ticketDetails["notes"].append({"text": blockquote.text.strip(), "timestamp": timestamp.text.strip()})
