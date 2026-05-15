@@ -189,14 +189,12 @@ def getTicketDetails(ticket_ID_database):
         bubbles = containerNotes.find_all(class_="bubble")
         for bubble in bubbles:
             blockquote = bubble.find("blockquote")
-            timestamp = bubble.find_next_sibling("cite")
-            #timestamp2 = timestamp.text.strip()
-            #print("timestamp direct: " + str(timestamp2))
-            if timestamp:
-                print("timestamp direct: " + timestamp.text.strip())
-                timestamp = timestamp.find("strong")
-                if blockquote and timestamp:
-                    ticketDetails["notes"].append({"text": blockquote.text.strip(), "timestamp": timestamp.text.strip()})
+            cite = bubble.find("cite")
+            if blockquote and cite:
+                ticketDetails["notes"].append({
+                    "text": blockquote.text.strip(),
+                    "timestamp": cite.text.strip()
+                })
     print("Notes: " + json.dumps(ticketDetails["notes"], ensure_ascii=False, indent=2))
     tableHeadings = html.find_all("th")
     #tableHeaderDamage = html.find("th", string=re.compile("SCHADEN"))
