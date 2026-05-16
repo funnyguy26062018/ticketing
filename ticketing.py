@@ -183,19 +183,11 @@ def getMyTickets(staff_ID,knownDatabaseIDs):
 def getTicketDetails(ticket_ID_database):
     #ticket_ID_database = "73241"
     html = getParsedHTML(session, TICKET_VIEW_URL + ticket_ID_database)
-    ticketDetails = {"notes": []}
+    ticketDetails = {}
     containerNotes = html.find(id="ticketnotescontainerdiv")
     if containerNotes:
-        bubbles = containerNotes.find_all(class_="bubble")
-        for bubble in bubbles:
-            blockquote = bubble.find("blockquote")
-            timestamp = bubble.find("cite")
-            #if timestamp:
-            #print("timestamp direct: " + timestamp.text.strip())
-                #timestamp = timestamp.find("strong")
-            if blockquote and timestamp:
-                ticketDetails["notes"].append({"text": blockquote.text.strip(), "timestamp": timestamp.text.strip()})
-    #print("Notes: " + json.dumps(ticketDetails["notes"], ensure_ascii=False, indent=2))
+        blockquotes = containerNotes.find_all("blockquote")
+        ticketDetails["note"] = blockquotes[-1].text.strip() if len(blockquotes) > 0 else ""
     tableHeadings = html.find_all("th")
     #tableHeaderDamage = html.find("th", string=re.compile("SCHADEN"))
     #tableDamage = tableHeaderDamage.find_parent("table") if tableHeaderDamage else ""
@@ -383,15 +375,8 @@ if __name__ == "__main__":
     dataReceived = json.loads(os.getenv("TICKET_DATA", "all"))
     mode = os.getenv("MODE", "full") # No need so far
     # ---------- RETRIEVES WEBSITE INFORMATION ----------
-    #a = "" in "test"
-    #session = login({
-    #    "username": "schuessler@stwhd",
-    #    "password": "triumph01"
-    #})
-    #a =getTicketDetails("1")
     # Login to website
     session = login(dataReceived["credentials"])
-    #print("My tickets: " + json.dumps(getTickets([]), ensure_ascii=False, indent=2))
     staff_IDs2 = dataReceived["staffIDs"]
     print("staffIDs:")
     print(staff_IDs2)
