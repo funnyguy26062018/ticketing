@@ -229,13 +229,13 @@ def getTicketDetails(ticket_ID_database):
             posterNameContainer = containerMessage.find(class_="ticketpostbarname")
             if posterNameContainer:
                 message["staffMember"] = posterNameContainer.text.strip()
-            timestampContainer = containerMessages.find(class_="ticketpostcontentsbar")
+            timestampContainer = containerMessage.find(class_="ticketpostcontentsbar")
             if timestampContainer:
                 message["timestamp"] = timestampContainer.text.strip()
-            textContainer = containerMessages.find(class_="ticketpostcontentsdetailscontainer")
+            textContainer = containerMessage.find(class_="ticketpostcontentsdetailscontainer")
             if textContainer:
                 message["text"] = textContainer.text.strip()
-            posterEmailContainer = containerMessages.find(class_="ticketpostbottomcontents")
+            posterEmailContainer = containerMessage.find(class_="ticketpostbottomcontents")
             if posterEmailContainer:
                 message["posterEmail"] = posterEmailContainer.text.strip()
             ticketDetails["messages"].append(message)
