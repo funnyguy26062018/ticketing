@@ -1,4 +1,4 @@
-#loo# ---------- IMPORTS ----------
+# ---------- IMPORTS ----------
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -397,4 +397,4 @@ if __name__ == "__main__":
     with open("output2.json", "w") as f:
         json.dump(dataToSend, f, indent=2)
     # Saves the scraped info in Google Sheets
-    ##saveInGoogleSheets(dataToSend)
+    saveInGoogleSheets(dataToSend)
